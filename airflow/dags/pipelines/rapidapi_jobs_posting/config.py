@@ -17,6 +17,7 @@ headers = {
 
 max_page = None
 
+server = "dev"
 
 gcs_params = {
     'dev': {

@@ -74,7 +74,6 @@ def paginated_source(
     file_name: str = None,
     gcs_bucket: str = None,
 ):
-    # @dlt.resource(write_disposition="append", table_name="raw_data")
     @dlt.resource()
     def get_pages():
 
@@ -133,7 +132,7 @@ def paginated_source(
             # Upload raw data to file in Google Cloud Storage if required
             if upload_to_gcs:
                 full_file_path = full_path + f"_{page}.{response_format}"
-                upload_parquet_to_gcs(
+                upload_to_gcs(
                     response.content,
                     gcs_bucket=gcs_bucket,
                     path=full_file_path,

@@ -1,4 +1,20 @@
-from config import max_page, queryparams, headers, url
+from copy import deepcopy
+import dlt
+
+from pipelines.common.utils import (
+    count_pages,
+    paginated_source,
+)
+from config import (
+    max_page, 
+    queryparams, 
+    headers, 
+    url, 
+    gcs_params,
+    server
+)
+from functions import flattened_jobs_posting
+
 
 def get_jobs_posting():
 
@@ -35,5 +51,7 @@ def get_jobs_posting():
 
     pipline_info = pipeline.run(
         flattened_jobs_posting(source),
-        credentials=gcp_key_dict,
+        credentials=gcs_params[server],
     )
+
+    print(pipline_info)

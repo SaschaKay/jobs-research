@@ -1,16 +1,25 @@
+from io import BytesIO
+from math import ceil
+import pyarrow.parquet as pq
+
+import dlt
+from dlt.sources.helpers import requests
+
+from pipelines.common.utils import flatten_dict_by_key
+
+
 def count_pages(
     url: str,
     queryparams: dict = None,  
     headers: dict = None,
     items_per_page: int = 10,
 ):
-    response_count = response = requests.get(
+    response_count = requests.get(
         url, headers=headers or {}, params=queryparams or {}
     )
 
     parquet_bytes = response_count.content
     buffer = BytesIO(parquet_bytes)
-
     table = pq.read_table(buffer)
     df = table.to_pandas()
 

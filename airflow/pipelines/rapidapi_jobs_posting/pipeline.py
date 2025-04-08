@@ -70,7 +70,6 @@ def rapidapi_jobs_posting(end_page: int = 1) -> None:
     pipeline = dlt.pipeline(
         pipeline_name="job_postings_to_bq_pipeline",
         destination="bigquery",
-        #location=BQ_PARAMS[SERVER]['location'],
         dataset_name=BQ_PARAMS[SERVER]['dataset_name'],  # will be created if not excists
     )
 

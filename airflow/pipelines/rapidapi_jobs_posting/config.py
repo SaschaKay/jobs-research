@@ -54,7 +54,7 @@ BQ_PARAMS = {
          'location':'EU'
     },
     'prod': {
-        'dataset_name': "job_postings",
+        'dataset_name': "jobs_postings",
         'location':'EU'
     }
 }

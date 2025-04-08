@@ -26,8 +26,9 @@ def get_gcp_key():
     return gcp_key_dict
 
 
-def upload_to_gcs(content: bytes, gcs_bucket: str, path: str):
-
+def upload_bytes_to_gcs(content: bytes, gcs_bucket: str, path: str):
+    
+    print(gcs_bucket, path)
     client = storage.Client()
     bucket = client.bucket(gcs_bucket)
     blob = bucket.blob(path)
@@ -66,8 +67,8 @@ def paginated_source(
     queryparams: dict = None,
     headers: dict = None,
     start_page=1,
-    max_page: int = None,
-    allow_no_max_page=False,
+    end_page: int = None,
+    allow_no_end_page=False,
     delay: int = 1,
     upload_to_gcs: bool = False,
     storage_path: str = None,
@@ -86,8 +87,8 @@ def paginated_source(
                 f"Unknown response format: {response_format}. Must be one of: {', '.join(allowed_response_formats)}"
             )
 
-        if max_page is None and not allow_no_max_page:
-            raise ValueError("define max_page or set allow_no_max_page=True")
+        if end_page is None and not allow_no_end_page:
+            raise ValueError("define end_page or set allow_no_end_page=True")
 
         if upload_to_gcs:
             if storage_path is None or file_name is None or gcs_bucket is None:
@@ -99,31 +100,34 @@ def paginated_source(
 
         if "page" in queryparams:
             raise ValueError(
-                "define page through start_page and max_page parameters, not in queryparams"
+                "define page through start_page and end_page parameters, not in queryparams"
             )
 
-        if max_page is not None and start_page > max_page:
-            raise ValueError("start_page can not be greater than max_page")
+        if end_page is not None and start_page > end_page:
+            raise ValueError("start_page can not be greater than end_page")
 
         # Fetching data
 
         page = start_page
 
         while True:
-            # Stop at max_page if defined
-            if max_page is not None and page > max_page:
+            # Stop at end_page if defined
+            if end_page is not None and page > end_page:
                 break
-
+                
+            print(f"Requesting page {page}...")
+            
             # Create a shallow copy of the queryparams dict to avoid mutating the input
             params = dict(queryparams or {})
             params["page"] = page
-
+            
             response = requests.get(url, headers=headers or {}, params=params)
-
             if response_format == "parquet":
                 data = response.content
             elif response_format == "json":
                 data = response.json()["result"]
+
+            print(f"Page {page} was recieved")
 
             if not data:
                 warnings.warn(f"No data in response for page {page}")
@@ -131,8 +135,9 @@ def paginated_source(
 
             # Upload raw data to file in Google Cloud Storage if required
             if upload_to_gcs:
+                print(f"Loading page {page} content to GCS...")
                 full_file_path = full_path + f"_{page}.{response_format}"
-                upload_to_gcs(
+                upload_bytes_to_gcs(
                     response.content,
                     gcs_bucket=gcs_bucket,
                     path=full_file_path,

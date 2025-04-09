@@ -41,9 +41,9 @@ def flatten_dict_by_key(nested_dict: dict, keys: Iterable):
     """
     Returns a new dict object with selected nested dicts flattened into the top level.
 
-    For each key in `keys`, if the key exists in `nested_dict` and its value is a dict,
-    it used to update the top-level dict. The original key is deleted.
-    In case of collision old keys get rewriten by new.
+    For each key in `keys`, if it exists in `nested_dict` and its value is a dict,
+    it is used to update the top-level dict. The original key is deleted.
+    In case of a collision, old keys get rewritten by new.
 
     This function does not modify the original input.
 
@@ -127,7 +127,7 @@ def paginated_source(
             elif response_format == "json":
                 data = response.json()["result"]
 
-            print(f"Page {page} was recieved")
+            print(f"Page {page} was recieived")
 
             if not data:
                 warnings.warn(f"No data in response for page {page}")

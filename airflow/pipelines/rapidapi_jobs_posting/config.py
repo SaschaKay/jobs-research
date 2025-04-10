@@ -38,12 +38,15 @@ END_PAGE = None  # the number of the last page to fetch
 SERVER = os.environ["SERVER_TYPE"] # can be "dev" or "prod"
 # defines the GCS bucket and BQ dataset to use 
 # set in ~/.profile
+# run source ~/.profile to apply changes 
 
+#Defines where to put raw responses. 
+#Full path to a file will be storage_path + file_name "_{page}.{response_format}"
 GCS_PARAMS = {
     "dev": {
         "bucket": "de-zoomcamp-2025-dev-terra-bucket",
         "storage_path": "raw/jobs/",
-        "file_name": f"rapidapi_test2/{MONTH_CREATED}/page",
+        "file_name": f"rapidapi_test2/{MONTH_CREATED}/{DATE_CREATED}_page", 
     },
     "prod": {
         "bucket": "jobs-postings-bucket-prod",

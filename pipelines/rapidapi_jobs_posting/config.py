@@ -1,3 +1,5 @@
+import os
+
 # Query parameters for the API
 
 URL = (
@@ -32,8 +34,8 @@ END_PAGE = 1  # the number of the last page to fetch
 
 # Google Cloud parameters
 
-SERVER = "dev"  # server name, can be "dev" or "prod"
-# defines the server to use and GS parameters
+SERVER = os.environ["RAPIDAPI_SERVER_TYPE"]  # can be "dev" or "prod"
+# defines a bucket and dataset name to use and GS parameters
 
 GCS_PARAMS = {
     "dev": {

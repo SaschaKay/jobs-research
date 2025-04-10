@@ -15,7 +15,6 @@ PaginatedSourceResponseFormat = Literal["json", "parquet"]
 
 
 def get_gcp_key():
-
     GOOGLE_APPLICATION_CREDENTIALS = os.environ[
         "GOOGLE_APPLICATION_CREDENTIALS"
     ]  # path to a GCP credential file
@@ -27,7 +26,6 @@ def get_gcp_key():
 
 
 def upload_bytes_to_gcs(content: bytes, gcs_bucket: str, path: str):
-    
     print(gcs_bucket, path)
     client = storage.Client()
     bucket = client.bucket(gcs_bucket)
@@ -43,7 +41,7 @@ def flatten_dict_by_key(nested_dict: dict, keys: Iterable):
 
     For each key in `keys`, if the key exists in `nested_dict` and its value is a dict,
     it used to update the top-level dict. The original key is deleted.
-    In case of collision old keys get rewriten by new.
+    In case of collision old keys get rewritten by new.
 
     This function does not modify the original input.
 
@@ -59,6 +57,7 @@ def flatten_dict_by_key(nested_dict: dict, keys: Iterable):
         result.update(nested_dict[key])
         del result[key]
     return result
+
 
 @dlt.source
 def paginated_source(
@@ -77,7 +76,6 @@ def paginated_source(
 ):
     @dlt.resource()
     def get_pages():
-
         # Input checks:
 
         allowed_response_formats = get_args(PaginatedSourceResponseFormat)
@@ -114,20 +112,20 @@ def paginated_source(
             # Stop at end_page if defined
             if end_page is not None and page > end_page:
                 break
-                
+
             print(f"Requesting page {page}...")
-            
+
             # Create a shallow copy of the queryparams dict to avoid mutating the input
             params = dict(queryparams or {})
             params["page"] = page
-            
+
             response = requests.get(url, headers=headers or {}, params=params)
             if response_format == "parquet":
                 data = response.content
             elif response_format == "json":
                 data = response.json()["result"]
 
-            print(f"Page {page} was recieved")
+            print(f"Page {page} was received")
 
             if not data:
                 warnings.warn(f"No data in response for page {page}")
@@ -151,4 +149,3 @@ def paginated_source(
             time.sleep(delay)
 
     return get_pages
-

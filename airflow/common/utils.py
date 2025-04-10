@@ -13,14 +13,15 @@ from google.cloud import storage
 
 PaginatedSourceResponseFormat = Literal["json", "parquet"]
 
-def print_dict(dict_to_print :dict, header: str=""):
+
+def print_dict(dict_to_print: dict, header: str = ""):
     print(header)
     for key, val in dict_to_print.items():
         print(f"{key}: {val}")
     print("")
 
-def get_gcp_key():
 
+def get_gcp_key():
     GOOGLE_APPLICATION_CREDENTIALS = os.environ[
         "GOOGLE_APPLICATION_CREDENTIALS"
     ]  # path to a GCP credential file
@@ -32,7 +33,6 @@ def get_gcp_key():
 
 
 def upload_bytes_to_gcs(content: bytes, gcs_bucket: str, path: str):
-    
     print(gcs_bucket, path)
     client = storage.Client()
     bucket = client.bucket(gcs_bucket)
@@ -65,6 +65,7 @@ def flatten_dict_by_key(nested_dict: dict, keys: Iterable):
         del result[key]
     return result
 
+
 @dlt.source
 def paginated_source(
     url: str,
@@ -82,7 +83,6 @@ def paginated_source(
 ):
     @dlt.resource()
     def get_pages():
-
         # Input checks:
 
         allowed_response_formats = get_args(PaginatedSourceResponseFormat)
@@ -119,13 +119,13 @@ def paginated_source(
             # Stop at end_page if defined
             if end_page is not None and page > end_page:
                 break
-                
+
             print(f"Requesting page {page}...")
-            
+
             # Create a shallow copy of the queryparams dict to avoid mutating the input
             params = dict(queryparams or {})
             params["page"] = page
-            
+
             response = requests.get(url, headers=headers or {}, params=params)
             if response_format == "parquet":
                 data = response.content
@@ -156,4 +156,3 @@ def paginated_source(
             time.sleep(delay)
 
     return get_pages
-

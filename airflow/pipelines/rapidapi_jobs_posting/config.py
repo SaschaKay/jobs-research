@@ -8,14 +8,15 @@ URL = (
 )
 
 QUERYPARAMS = {
-    "dateCreated": "2025-02", # date format YYYY-MM or YYYY-MM-DD
+    "dateCreated": "2025-01-20", # date format YYYY-MM or YYYY-MM-DD
     "countryCode": "de",
     "title": "Data",
-    "city": "Munich",
+     #"city": "Munich",
     "language": "en",
 }
 
-MONTH_CREATED = QUERYPARAMS["dateCreated"][:8]
+MONTH_CREATED = QUERYPARAMS["dateCreated"].replace("-", "_")[:7]
+DATE_CREATED = QUERYPARAMS["dateCreated"].replace("-", "_")
 
 HEADERS = {
     "x-rapidapi-key": "24eedad401msh992a0a2dccd6d5dp178930jsnbd454e2cb868",
@@ -25,14 +26,14 @@ HEADERS = {
 
 START_PAGE = 1 # the number of the first page to fetch
                # set N if the pipeline failed on N requests 
-END_PAGE = 1 # the number of the last page to fetch 
-             # None -> calculate max_page based on the total count of job postings
-             # max_page = 2 -> set max_page to 2 for testing on a small amount of requests 
+END_PAGE = None # the number of the last page to fetch 
+                # None -> calculate max_page based on the total count of job postings
+                # max_page = 2 -> set max_page to 2 for testing on a small amount of requests 
 
 
 # Google Cloud parametrs
 
-SERVER = "dev" # server name, can be "dev" or "prod"
+SERVER = "prod" # server name, can be "dev" or "prod"
                # defines the server to use and GS parameters
 
 GCS_PARAMS = {
@@ -42,20 +43,20 @@ GCS_PARAMS = {
         'file_name': f"rapidapi_test2/{MONTH_CREATED}/page"
     },
     'prod': {
-        'bucket': "job-postings-bucket-prod",
+        'bucket': "jobs-postings-bucket-prod",
         'storage_path': "raw/jobs/",
-        'file_name': f"rapidapi/{MONTH_CREATED}/page"
+        'file_name': f"rapidapi/{MONTH_CREATED}/{DATE_CREATED}_page"
     }
 }
 
 BQ_PARAMS = {
     'dev': {
         'dataset_name': "job_postings_test",
-         'location':'EU'
+         'location':'US'
     },
     'prod': {
         'dataset_name': "jobs_postings",
-        'location':'EU'
+        'location':"europe-west1"
     }
 }
 

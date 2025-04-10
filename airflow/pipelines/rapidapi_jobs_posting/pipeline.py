@@ -8,6 +8,7 @@ import dlt
 from common.utils import (
     paginated_source,
     get_gcp_key,
+    print_dict,
 )
 from config import ( 
     #request parameters
@@ -49,6 +50,11 @@ def rapidapi_jobs_posting(end_page: int = 1) -> None:
     Get job postings from RapidAPI, upload raw data to Google Cloud Storage (GCS), and normalized data to BigQuery.
     The function uses the dlt library to create a pipeline that extracts job postings from the RapidAPI service.
     """
+    print(SERVER)
+    print("")
+    print_dict(GCS_PARAMS[SERVER], "Raw data will be loaded in GCS:")
+    print_dict(BQ_PARAMS[SERVER], "Processed data will be loaded in BQ:")
+    
     print("")
     for key, val in QUERYPARAMS.items():
         print(f"{key}: {val}")
@@ -69,14 +75,19 @@ def rapidapi_jobs_posting(end_page: int = 1) -> None:
 
     pipeline = dlt.pipeline(
         pipeline_name="job_postings_to_bq_pipeline",
-        destination="bigquery",
-        dataset_name=BQ_PARAMS[SERVER]['dataset_name'],  # will be created if not excists
+        destination=dlt.destinations.bigquery(
+            credentials=get_gcp_key(),
+            dataset_name=BQ_PARAMS[SERVER]['dataset_name'],
+            location=BQ_PARAMS[SERVER]['location']
+        )
+        #destination="bigquery",
+        #dataset_name=BQ_PARAMS[SERVER]['dataset_name'],  # will be created if not excists
     )
 
 
     pipline_info = pipeline.run(
         flattened_jobs_posting(source),
-        credentials=get_gcp_key(),
+        #credentials=get_gcp_key(),
     )
 
     print(pipline_info)

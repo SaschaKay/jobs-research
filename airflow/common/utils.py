@@ -13,6 +13,11 @@ from google.cloud import storage
 
 PaginatedSourceResponseFormat = Literal["json", "parquet"]
 
+def print_dict(dict_to_print :dict, header: str=""):
+    print(header)
+    for key, val in dict_to_print.items():
+        print(f"{key}: {val}")
+    print("")
 
 def get_gcp_key():
 
@@ -127,7 +132,7 @@ def paginated_source(
             elif response_format == "json":
                 data = response.json()["result"]
 
-            print(f"Page {page} was recieived")
+            print(f"Page {page} was received")
 
             if not data:
                 warnings.warn(f"No data in response for page {page}")

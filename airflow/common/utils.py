@@ -8,7 +8,7 @@ from typing import Literal, Iterable, get_args
 
 import dlt
 from dlt.sources.helpers import requests
-from google.cloud import storage
+from google.cloud import storage, bigquery
 
 
 PaginatedSourceResponseFormat = Literal["json", "parquet"]
@@ -156,4 +156,13 @@ def paginated_source(
             time.sleep(delay)
 
     return get_pages
+
+
+def bq_table_to_df(project, dataset_name, table_ref, bq_client = None):
+    if bq_client is None:
+        bq_client = bigquery.Client()
+    dataset_ref = bigquery.DatasetReference(project, dataset_name)
+    table_ref = dataset_ref.table(table_ref)
+    table = bq_client.get_table(table_ref)
+    return bq_client.list_rows(table).to_dataframe()
 

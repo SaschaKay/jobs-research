@@ -36,6 +36,11 @@ END_PAGE = None # the number of the last page to fetch
 SERVER = "prod" # server name, can be "dev" or "prod"
                # defines the server to use and GS parameters
 
+GCP_NAME = {
+    'dev':  "x-avenue-450615-c3t",
+    'prod': "x-avenue-450615-c3"
+    }
+
 GCS_PARAMS = {
     'dev': {
         'bucket': "de-zoomcamp-2025-dev-terra-bucket",
@@ -60,3 +65,17 @@ BQ_PARAMS = {
     }
 }
 
+COLUMNS_TO_DOWNLOAD = [
+    "_dlt_id",
+    "company",
+    "new_city",
+    "new_position",
+    "url",
+    "portal",
+    "url",
+    "portal",
+    "years_of_experience",
+    "date_created",
+    "locale",
+    "description",
+]

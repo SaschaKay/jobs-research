@@ -31,7 +31,36 @@ def get_gcp_key():
     return gcp_key_dict
 
 
-def upload_bytes_to_gcs(content: bytes, gcs_bucket: str, path: str):
+def bq_table_to_df(project, dataset_name, table_ref, bq_client = None):
+    if bq_client is None:
+        bq_client = bigquery.Client()
+    dataset_ref = bigquery.DatasetReference(project, dataset_name)
+    table_ref = dataset_ref.table(table_ref)
+    table = bq_client.get_table(table_ref)
+    return bq_client.list_rows(table).to_dataframe()
+
+
+def df_to_bq(df, project, dataset_name, table_name, bq_client=None, tuncate=False):
+    if bq_client is None:
+        bq_client = bigquery.Client()
+
+    table_id = f"{project}.{dataset_name}.{table_name}"
+
+    job_config = bigquery.LoadJobConfig(
+        write_disposition=(
+            bigquery.WriteDisposition.WRITE_TRUNCATE
+            if tuncate
+            else bigquery.WriteDisposition.WRITE_APPEND
+        )
+    )
+
+    job = bq_client.load_table_from_dataframe(df, table_id, job_config=job_config)
+    job.result()  # Waits for the job to complete.
+    print(f"Uploaded {len(df)} rows to {table_id}")
+
+
+
+def bytes_to_gcs(content: bytes, gcs_bucket: str, path: str):
     
     print(gcs_bucket, path)
     client = storage.Client()
@@ -142,7 +171,7 @@ def paginated_source(
             if upload_to_gcs:
                 print(f"Loading page {page} content to GCS...")
                 full_file_path = full_path + f"_{page}.{response_format}"
-                upload_bytes_to_gcs(
+                bytes_to_gcs(
                     response.content,
                     gcs_bucket=gcs_bucket,
                     path=full_file_path,
@@ -157,12 +186,4 @@ def paginated_source(
 
     return get_pages
 
-
-def bq_table_to_df(project, dataset_name, table_ref, bq_client = None):
-    if bq_client is None:
-        bq_client = bigquery.Client()
-    dataset_ref = bigquery.DatasetReference(project, dataset_name)
-    table_ref = dataset_ref.table(table_ref)
-    table = bq_client.get_table(table_ref)
-    return bq_client.list_rows(table).to_dataframe()
 

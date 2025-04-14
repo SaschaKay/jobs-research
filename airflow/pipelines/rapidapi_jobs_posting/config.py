@@ -2,6 +2,7 @@ from google.cloud.bigquery.enums import SqlTypeNames
 
 PROJECT_ROOT_RELATIVE = "../../"
 
+PRINT_SQL = True #complicated SQL scripts will be printed for easier debugging
 
 # query parameters for the API
 
@@ -75,7 +76,7 @@ BQ_PARAMS = {
 
 JOBS_POSTINGS_FINAL_COLS = {
     "id": [SqlTypeNames.STRING],
-    "date_created": [SqlTypeNames.TIMESTAMP],
+    "date_created": [SqlTypeNames.DATE],
     "company": [SqlTypeNames.STRING],
     "city_group": [SqlTypeNames.STRING],
     "position": [SqlTypeNames.STRING],

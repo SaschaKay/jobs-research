@@ -1,6 +1,29 @@
+import warnings
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
+# adding paths for project modules
+CUR_DIR_WARNING = (
+    "__file__ was not available, os.getcwd() was used instead. "
+    "You may need to change the working directory."
+)
+try:
+    CURRENT_DIRECTORY = os.path.dirname(__file__)
+except NameError:
+    CURRENT_DIRECTORY = os.getcwd()
+    warnings.warn(CUR_DIR_WARNING)
+
+if CURRENT_DIRECTORY not in sys.path:
+    sys.path.append(CURRENT_DIRECTORY)
+    
+from config import PROJECT_ROOT_RELATIVE
+PROJECT_ROOT = os.path.abspath(
+    os.path.join(CURRENT_DIRECTORY, PROJECT_ROOT_RELATIVE)
+)
+print(PROJECT_ROOT)
+if PROJECT_ROOT not in sys.path:
+    sys.path.append(PROJECT_ROOT)
+    print(PROJECT_ROOT)
 
 from copy import deepcopy
 import dlt

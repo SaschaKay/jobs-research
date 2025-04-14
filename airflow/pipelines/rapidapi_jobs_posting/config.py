@@ -1,4 +1,5 @@
 from google.cloud.bigquery.enums import SqlTypeNames
+from datetime import datetime, timedelta
 
 PROJECT_ROOT_RELATIVE = "../../"
 
@@ -13,8 +14,10 @@ URL = (
     "https://daily-international-job-postings.p.rapidapi.com/api/v2/jobs/{request_type}"
 )
 
+YESTERDAY = (datetime.today() - timedelta(days=1)).strftime("%Y-%m-%d")
+
 QUERYPARAMS = {
-    "dateCreated": "2025-01-20", # date format YYYY-MM or YYYY-MM-DD
+    "dateCreated": "2025-01-26", # date format YYYY-MM or YYYY-MM-DD
     "countryCode": "de",
     "title": "Data",
      #"city": "Munich",

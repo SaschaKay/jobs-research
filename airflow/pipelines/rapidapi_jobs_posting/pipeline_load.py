@@ -20,10 +20,10 @@ from config import PROJECT_ROOT_RELATIVE
 PROJECT_ROOT = os.path.abspath(
     os.path.join(CURRENT_DIRECTORY, PROJECT_ROOT_RELATIVE)
 )
-print(PROJECT_ROOT)
+
 if PROJECT_ROOT not in sys.path:
     sys.path.append(PROJECT_ROOT)
-    print(PROJECT_ROOT)
+    print(f"{PROJECT_ROOT} was appended to sys.path")
 
 from copy import deepcopy
 import dlt

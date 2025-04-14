@@ -19,6 +19,48 @@ def print_dict(dict_to_print :dict, header: str=""):
         print(f"{key}: {val}")
     print("")
 
+
+
+def bq_merge(
+    main_table_full_name: str, 
+    source_table_full_name: str, 
+    key_column: str,
+    columns_list: list,
+    bq_client=None,
+    print_sql: bool = False,
+):  
+    
+    if bq_client is None:
+        bq_client = bigquery.Client()
+        
+    update_clause = ",\n        ".join([f"T.{col} = S.{col}" for col in columns_list])
+    columns_list.append(key_column)
+    insert_columns = ",\n        ".join(columns_list)
+    insert_values = ",\n        ".join([f"S.{col}" for col in columns_list])
+    
+    query = f"""
+    MERGE `{main_table_full_name}` T
+    USING `{source_table_full_name}` S
+    ON T.{key_column} = S.{key_column}
+    
+    WHEN MATCHED THEN
+    UPDATE SET 
+    {update_clause}
+    
+    WHEN NOT MATCHED THEN
+    INSERT (
+    {insert_columns}
+    )
+    VALUES (
+    {insert_values}
+    )
+    """
+    
+    if print_sql:
+        print(query)
+    job = bq_client.query(query)
+    job.result()
+
 def get_gcp_key():
 
     GOOGLE_APPLICATION_CREDENTIALS = os.environ[
@@ -40,24 +82,34 @@ def bq_table_to_df(project, dataset_name, table_ref, bq_client = None):
     return bq_client.list_rows(table).to_dataframe()
 
 
-def df_to_bq(df, project, dataset_name, table_name, bq_client=None, tuncate=False):
+
+def df_to_bq(df, table_name, dataset, project, bq_client=None, truncate=False):
     if bq_client is None:
         bq_client = bigquery.Client()
+        
+    full_table_name = f"{project}.{dataset}.{table_name}"
 
-    table_id = f"{project}.{dataset_name}.{table_name}"
-
+    if truncate:
+        job = bq_client.query(f"truncate table {full_table_name}")
+        job.result()
+        print(f"{full_table_name} truncated")
+        
     job_config = bigquery.LoadJobConfig(
         write_disposition=(
             bigquery.WriteDisposition.WRITE_TRUNCATE
-            if tuncate
+            if truncate
             else bigquery.WriteDisposition.WRITE_APPEND
         )
     )
-
-    job = bq_client.load_table_from_dataframe(df, table_id, job_config=job_config)
-    job.result()  # Waits for the job to complete.
-    print(f"Uploaded {len(df)} rows to {table_id}")
-
+    job = bq_client.load_table_from_dataframe(
+        df, full_table_name, job_config
+    ) 
+    job.result()
+    print(
+        "Loaded {} rows to {}".format(
+            len(df), full_table_name
+        )
+    )
 
 
 def bytes_to_gcs(content: bytes, gcs_bucket: str, path: str):

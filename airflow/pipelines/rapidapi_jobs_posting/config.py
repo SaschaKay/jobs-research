@@ -14,14 +14,15 @@ URL = (
     "https://daily-international-job-postings.p.rapidapi.com/api/v2/jobs/{request_type}"
 )
 
-YESTERDAY = (datetime.today() - timedelta(days=1)).strftime("%Y-%m-%d")
+DATE_CREATED = (datetime.today() - timedelta(days=7)).strftime("%Y-%m-%d")
 
 QUERYPARAMS = {
-    "dateCreated": "2025-01-26", # date format YYYY-MM or YYYY-MM-DD
+    "dateCreated": DATE_CREATED, # date format YYYY-MM or YYYY-MM-DD
     "countryCode": "de",
     "title": "Data",
      #"city": "Munich",
     "language": "en",
+    "locale": "en_DE",
 }
 
 MONTH_CREATED = QUERYPARAMS["dateCreated"].replace("-", "_")[:7]

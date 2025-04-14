@@ -1,3 +1,4 @@
+import os
 from google.cloud.bigquery.enums import SqlTypeNames
 from datetime import datetime, timedelta
 
@@ -29,7 +30,7 @@ MONTH_CREATED = QUERYPARAMS["dateCreated"].replace("-", "_")[:7]
 DATE_CREATED = QUERYPARAMS["dateCreated"].replace("-", "_")
 
 HEADERS = {
-    "x-rapidapi-key": "24eedad401msh992a0a2dccd6d5dp178930jsnbd454e2cb868",
+    "x-rapidapi-key": "",
     "x-rapidapi-host": "daily-international-job-postings.p.rapidapi.com",
 }
 

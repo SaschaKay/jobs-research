@@ -104,16 +104,16 @@ def rapidapi_jobs_posting(end_page: int = 1) -> None:
             location=BQ_PARAMS[SERVER]['location']
         )
         #destination="bigquery",
-        #dataset_name=BQ_PARAMS[SERVER]['dataset_name'],  # will be created if not excists
+        #dataset_name=BQ_PARAMS[SERVER]['dataset_name'],  # will be created if not exists
     )
 
 
-    pipline_info = pipeline.run(
+    pipeline_info = pipeline.run(
         flattened_jobs_posting(source),
         #credentials=get_gcp_key(),
     )
 
-    print(pipline_info)
+    print(pipeline_info)
 
 
 

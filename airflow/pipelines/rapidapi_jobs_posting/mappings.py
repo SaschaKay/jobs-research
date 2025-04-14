@@ -4,7 +4,7 @@ MappingDict = namedtuple(
     "MappingDict", ["mapping_dict", "case_sensitive", "spaces_sensitive"]
 )
 
-city_clusters = {
+CITY_CLUSTERS = {
     "Rhein-Neckar": {"mannheim", "heidelberg", "walldorf", "ludwigshafen"},
     "Berlin": {"berlin"},
     "Munich": {"munich", "münchen", "munchen", "münchen"},
@@ -26,7 +26,7 @@ city_clusters = {
     "Heidelberg": {"heidelberg"},
 }
 
-mapping_dicts_positions = [
+POSITIONS = [
     MappingDict(
         {
             "Data Engineer": "Data Engineer",
@@ -93,23 +93,3 @@ mapping_dicts_positions = [
         True,
     ),
 ]
-
-
-def prepare_mapping_dict(
-    mapping_dict: dict, case_sensitive: bool = False, spaces_sensitive: bool = False
-) -> MappingDict:
-    prepared_dict = {}
-    for key, val in mapping_dict.items():
-        prepared_key = key
-        prepared_val = val
-        if not case_sensitive:
-            prepared_key = prepared_key.lower()
-        if not spaces_sensitive:
-            prepared_key = prepared_key.replace(" ", "")
-        prepared_dict[prepared_key] = prepared_val
-    return MappingDict(
-        prepared_dict,
-        case_sensitive,
-        spaces_sensitive,
-    )
-

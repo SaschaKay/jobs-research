@@ -62,7 +62,6 @@ def bq_merge(
     job = bq_client.query(query)
     job.result()
 
-def get_gcp_key():
 
 def get_gcp_key():
     GOOGLE_APPLICATION_CREDENTIALS = os.environ[

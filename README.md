@@ -31,7 +31,7 @@ Data loaded in Pandas DataFrames, processed, and downloaded to the distinct anal
   1. Identical positions, posted on different portals, grouped based on location, preprocessed description, and title. Unique key for analytical table = id of position, generated with SHA1 based on preprocessed text fields.
   2. Locations and positions standardized and normalized through aggregation from several low-quality fields and regular expressions.
   3. The final analytical table structure provides clean, ready-to-use, standardized data. Partitioned by year of the last post, created with this position.
-  4. For the dashboard in LookUp, data is preaggregated in a view. Dashboard refreshes once per day.
+  4. For the [dashboard in LookUp](https://lookerstudio.google.com/s/jqDeXhNYVhE), data is preaggregated in a view. Dashboard refreshes once per day.
 
 ![image](https://github.com/user-attachments/assets/59c57c42-4d0b-442f-a9df-27539204f520)
 

@@ -1,4 +1,3 @@
-import os
 from key import API_KEY
 from google.cloud.bigquery.enums import SqlTypeNames
 from datetime import datetime, timedelta
@@ -73,7 +72,7 @@ BQ_PARAMS = {
     "prod": {"dataset_name": "jobs_postings", "location": "europe-west1"},
 }
 
-#data transform parametrs
+#data transform parameters
 
 JOBS_POSTINGS_FINAL_COLS = {
     "id": [SqlTypeNames.STRING],

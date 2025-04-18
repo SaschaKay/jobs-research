@@ -25,7 +25,6 @@ if PROJECT_ROOT not in sys.path:
     sys.path.append(PROJECT_ROOT)
     print(f"{PROJECT_ROOT} was added to sys.path")
     
-import re
 from math import ceil
 import datetime as dt
 import pandas as pd
@@ -33,9 +32,7 @@ from google.cloud import bigquery
 
 from common.utils import (
     df_to_bq,
-    bq_table_to_df,
     bq_merge,
-    print_dict,
 )
 from functions import (
     find_position_in_text, 

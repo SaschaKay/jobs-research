@@ -26,9 +26,7 @@ from dlt.sources.helpers import requests
 from common.utils import (
     df_to_bq,
     flatten_dict_by_key,
-    bq_merge,
 )
-from mappings import MappingDict
 
 
 #load pipeline functions
@@ -60,6 +58,7 @@ def flattened_jobs_posting(source):
     for record in source.resources["get_pages"]():
         yield flatten_dict_by_key(nested_dict=record, keys=["jsonLD"])
 
+
 #Transform pipeline functions
 
 def get_string_id(s :str) -> str:
@@ -84,7 +83,6 @@ def get_post_id(attr_list :Iterable) -> str:
     return hashlib.sha1(attr_parts_str.encode("UTF-8")).hexdigest()
 
 
-
 class LoadsLogger():
     
     def __init__(self, df_posting, dataset, project):
@@ -104,5 +102,4 @@ class LoadsLogger():
     def finish(self, pipeline_name):
         self.df_new_loads["processed_by"] = pipeline_name
         self.df_new_loads["finished_at"] = dt.datetime.now()
-        df_to_bq(df_new_loads, '_jp_processed_loads', self.dataset, self.project, truncate=False)
-            
+        df_to_bq(self.df_new_loads, '_jp_processed_loads', self.dataset, self.project, truncate=False)

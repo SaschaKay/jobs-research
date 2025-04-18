@@ -35,18 +35,20 @@ from common.utils import (
 )
 from config import ( 
     #request parameters
-    START_PAGE, #set i
+    START_PAGE,
     END_PAGE, 
     QUERYPARAMS, 
     HEADERS, 
     URL,
     #destinations parameters
     GCS_PARAMS,
-    BQ_PARAMS,
+    BQ_DWH_PARAMS,
     #switching between test/prod parameters
     SERVER
 )
 from functions import flattened_jobs_posting, count_pages
+
+BQ_PARAMS = BQ_DWH_PARAMS
 
 
 def get_end_page()-> int:

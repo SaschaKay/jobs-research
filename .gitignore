@@ -6,3 +6,6 @@
 # Ignore Python cache files
 **/__pycache__/**
 **/.ipynb_checkpoints/**
+
+#Ignote testing notebooks in pipelines folder
+**/pipelines/**.ipynb

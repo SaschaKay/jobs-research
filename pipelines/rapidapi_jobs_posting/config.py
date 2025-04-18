@@ -18,19 +18,19 @@ URL = (
 DATE_CREATED = (datetime.today() - timedelta(days=7)).strftime("%Y-%m-%d")
 
 QUERYPARAMS = {
-    "dateCreated": DATE_CREATED, # date format YYYY-MM or YYYY-MM-DD
-    "countryCode": "de",
-    "title": "Data",
-    # "city": "Munich",
-    "language": "en",
-    "locale": "en_DE",
+    "dateCreated":  DATE_CREATED, # date format YYYY-MM or YYYY-MM-DD
+    "countryCode":  "de",
+    "title":        "Data",
+    # "city":       "Munich",
+    "language":     "en",
+    "locale":       "en_DE",
 }
 
 MONTH_CREATED = QUERYPARAMS["dateCreated"].replace("-", "_")[:7]
 DATE_CREATED = QUERYPARAMS["dateCreated"].replace("-", "_")
 
 HEADERS = {
-    "x-rapidapi-key": API_KEY,
+    "x-rapidapi-key":  API_KEY,
     "x-rapidapi-host": "daily-international-job-postings.p.rapidapi.com",
 }
 
@@ -44,10 +44,7 @@ END_PAGE = None  # the number of the last page to fetch
 
 # Google Cloud parameters
 
-SERVER = "dev" # can be "dev" or "prod"
-# defines the GCS bucket and BQ dataset to use 
-# set in ~/.profile
-# run source ~/.profile to apply changes 
+SERVER = "prod" # can be "dev" or "prod"
 
 GCP_NAME = {
     'dev':  "x-avenue-450615-c3",
@@ -56,32 +53,37 @@ GCP_NAME = {
 
 GCS_PARAMS = {
     "dev": {
-        "bucket": "de-zoomcamp-2025-dev-terra-bucket",
+        "bucket":       "de-zoomcamp-2025-dev-terra-bucket",
         "storage_path": "raw/jobs/",
-        "file_name": f"rapidapi_test2/{MONTH_CREATED}/{DATE_CREATED}_page", 
+        "file_name":    f"rapidapi_test2/{MONTH_CREATED}/{DATE_CREATED}_page", 
     },
     "prod": {
-        "bucket": "jobs-postings-bucket-prod",
+        "bucket":       "jobs-postings-bucket-prod",
         "storage_path": "raw/jobs/",
-        "file_name": f"rapidapi/{MONTH_CREATED}/{DATE_CREATED}_page",
+        "file_name":    f"rapidapi/{MONTH_CREATED}/{DATE_CREATED}_page",
     },
 }
 
-BQ_PARAMS = {
-    "dev": {"dataset_name": "job_postings_test", "location": "US"},
-    "prod": {"dataset_name": "jobs_postings", "location": "europe-west1"},
+BQ_DWH_PARAMS = {
+    "dev":  {"dataset_name": "job_postings_test", "location": "europe-west1"},
+    "prod": {"dataset_name": "jobs_postings",      "location": "europe-west1"},
+}
+
+BQ_ADB_PARAMS = {
+    "dev":  {"dataset_name": "jp_test", "location": "europe-west1"},
+    "prod": {"dataset_name": "jp",      "location": "europe-west1"},
 }
 
 #data transform parameters
 
 JOBS_POSTINGS_FINAL_COLS = {
-    "id": [SqlTypeNames.STRING],
-    "date_created": [SqlTypeNames.DATE],
-    "company": [SqlTypeNames.STRING],
-    "city_group": [SqlTypeNames.STRING],
-    "position": [SqlTypeNames.STRING],
-    "portal": [SqlTypeNames.STRING],
-    "url": [SqlTypeNames.STRING],
+    "id":                  [SqlTypeNames.STRING],
+    "date_created":        [SqlTypeNames.DATE],
+    "company":             [SqlTypeNames.STRING],
+    "city_group":          [SqlTypeNames.STRING],
+    "position":            [SqlTypeNames.STRING],
+    "portal":              [SqlTypeNames.STRING],
+    "url":                 [SqlTypeNames.STRING],
     "years_of_experience": [SqlTypeNames.INTEGER],
-    "description": [SqlTypeNames.STRING],
+    "description":         [SqlTypeNames.STRING],
 }

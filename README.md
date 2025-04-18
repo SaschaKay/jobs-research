@@ -6,7 +6,7 @@ Dashboard
 Project uses external [API](https://rapidapi.com/techmap-io-techmap-io-default/api/daily-international-job-postings), which scrapes postings data from numerous portals.
 For analysis, postings with 'Data' in the title were used. 
 
-![image](https://github.com/user-attachments/assets/fc7f09e9-ae47-415c-8dab-9fbade713842)
+![image](https://github.com/user-attachments/assets/492003fe-ccb7-40af-ad3c-81ef673796aa)
 
 ## IaC
 Set up with Terraform:

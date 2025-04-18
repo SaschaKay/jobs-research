@@ -1,0 +1,8 @@
+# Ignore key.py everywhere
+**/key.py
+**/keys.py
+**/keys/**
+
+# Ignore Python cache files
+**/__pycache__/**
+**/.ipynb_checkpoints/**

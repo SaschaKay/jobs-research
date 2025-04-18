@@ -14,7 +14,8 @@ Set up with Terraform:
 * Cloud Storage Bucket
 With Docker:
 * Python container for processing and orchestrating
-* In addition, some setup for Airflow was made(not used in this project, scheduled with cron). All libraries versions installed on the container are automatically checked for compatibility with Airflow for further seamless migration.
+* Airflow containers: scheduler(+worker), webserver, postgress.
+* In addition, stand-alone basic Airflow container is used to check all libraries versions installed on the jupyter container for compatibility with Airflow for further seamless migration.
 Code and instructions for setting up infrastructure are in [job-research-infrastracture](https://github.com/SaschaKay/job-research-infrastracture) repository.
 
 ## Data Flow
@@ -23,13 +24,13 @@ Ingestion and transformation pipelines are realised in two different modules tha
 Loaded with DBT pipeline from custom paginated source to BQ. 
 Source:
   1. Requests data with the DLT helper
-  2. Immediately saves response to Google Cloud Storage
+  2. Immediately saves the response to Google Cloud Storage
   3. Partly flattens the response JSON, deletes duplicated fields, and hands it to DLT
-DTL defines schema based on data, handles datatypes, flattens JSON list fields into distinct tables, and loads them incrementally. 
+DTL defines a schema based on data, handles datatypes, flattens JSON list fields into distinct tables, and loads them incrementally. 
 #### Transformation:
-Data loaded in Pandas DataFrames, processed, and downloaded to the distinct analytical dataset.
+Data loaded in Pandas DataFrames, processed, and downloaded to a distinct analytical dataset.
   1. Identical positions, posted on different portals, grouped based on location, preprocessed description, and title. Unique key for analytical table = id of position, generated with SHA1 based on preprocessed text fields.
-  2. Locations and positions standardized and normalized through aggregation from several low-quality fields and regular expressions.
+  2. Locations and positions are standardized and normalized through aggregation from several low-quality fields and regular expressions.
   3. The final analytical table structure provides clean, ready-to-use, standardized data. Partitioned by year of the last post, created with this position.
   4. For the [dashboard in LookUp](https://lookerstudio.google.com/s/jqDeXhNYVhE), data is preaggregated in a view. Dashboard refreshes once per day.
 
@@ -38,15 +39,18 @@ Data loaded in Pandas DataFrames, processed, and downloaded to the distinct anal
 ## Reproducibility
 1. Key and instructions for API can be obtained [here](https://rapidapi.com/techmap-io-techmap-io-default/api/daily-international-job-postings)(there are 25 free requests available).
 2. Set up infrastructure with [job-research-infrastracture](https://github.com/SaschaKay/job-research-infrastracture).
-3. Clone this repository to your Jupyter container.
-4. Pass your API key to the variable HEADERS["x-rapidapi-key"] in `/pipelines/rapidapi_jobs_posting/config.py`.
-5. Note variable END_PAGE, if not specified, all available data for DATE_CREATED period will be requested.
-6. Change Google Cloud infrastructure parameters in GCS_PARAMS, BQ_PARAMS, and GCP_NAME variables.
-7. Specify your desired LOG_DIR in `/pipelines/rapidapi_jobs_posting/run_etl.sh`
-8. Run run_etl.sh in terminal with
+3. Clone this repository to your Airflow container in `/opt/airflow/repos`.
+4. Create a link on DAGs files as described in `pipelines/dags/readme.txt`.
+5. Create filr `/pipelines/rapidapi_jobs_posting/key.py` and add there
+   
+       API_KEY = "_your repidapi keey_"
+7. Specify variable END_PAGE in `/pipelines/rapidapi_jobs_posting/config.py`. If not specified, all available data for DATE_CREATED period will be requested.
+8. Change Google Cloud infrastructure parameters in GCS_PARAMS, BQ_PARAMS, and GCP_NAME variables.
+9. Open Airflow Webserver UI. You should see jobs_postings_pipeline in the list of DUGs there. 
+    ![image](https://github.com/user-attachments/assets/3688df19-af90-407c-b50b-68d2b153125d)
+10. Trigger it with ![image](https://github.com/user-attachments/assets/d5b3a283-6fbc-4aa2-9ca1-c4bd52c3e47c)
 
-        bash run_etl.sh
-9. To schedule, follow the instructions inside.
+
 
 
    

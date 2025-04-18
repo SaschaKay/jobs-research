@@ -1,4 +1,5 @@
 import os
+from key import API_KEY
 from google.cloud.bigquery.enums import SqlTypeNames
 from datetime import datetime, timedelta
 
@@ -30,7 +31,7 @@ MONTH_CREATED = QUERYPARAMS["dateCreated"].replace("-", "_")[:7]
 DATE_CREATED = QUERYPARAMS["dateCreated"].replace("-", "_")
 
 HEADERS = {
-    "x-rapidapi-key": "",
+    "x-rapidapi-key": API_KEY,
     "x-rapidapi-host": "daily-international-job-postings.p.rapidapi.com",
 }
 
@@ -39,12 +40,12 @@ START_PAGE = 1  # the number of the first page to fetch
 # set N if the pipeline failed on N requests
 END_PAGE = None  # the number of the last page to fetch
 # None -> calculate max_page based on the total count of job postings
-# max_page = 2 -> set max_page to 2 for testing on a small amount of requests
+# max_page = 2 -> set max_page to 2 for testing on a small number of requests
 
 
 # Google Cloud parameters
 
-SERVER = os.environ["SERVER_TYPE"] # can be "dev" or "prod"
+SERVER = "dev" # can be "dev" or "prod"
 # defines the GCS bucket and BQ dataset to use 
 # set in ~/.profile
 # run source ~/.profile to apply changes 

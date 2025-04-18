@@ -11,9 +11,11 @@ sys.path.append(
     )
 )
 
+import datetime as dt
 from io import BytesIO
 import hashlib
 from math import ceil
+import pandas as pd
 import pyarrow.parquet as pq
 import re
 from typing import Iterable 
@@ -21,7 +23,11 @@ from typing import Iterable
 import dlt
 from dlt.sources.helpers import requests
 
-from common.utils import flatten_dict_by_key
+from common.utils import (
+    df_to_bq,
+    flatten_dict_by_key,
+    bq_merge,
+)
 from mappings import MappingDict
 
 
@@ -54,7 +60,6 @@ def flattened_jobs_posting(source):
     for record in source.resources["get_pages"]():
         yield flatten_dict_by_key(nested_dict=record, keys=["jsonLD"])
 
-
 #Transform pipeline functions
 
 def get_string_id(s :str) -> str:
@@ -78,43 +83,26 @@ def get_post_id(attr_list :Iterable) -> str:
     attr_parts_str = "".join([get_string_id(s) for s in attr_list])
     return hashlib.sha1(attr_parts_str.encode("UTF-8")).hexdigest()
 
-def prepare_mapping_dict(
-    mapping_dict: dict, 
-    case_sensitive: bool = False, 
-    spaces_sensitive: bool = False
-) -> MappingDict:
+
+
+class LoadsLogger():
     
-    prepared_dict = {}
-    for key, val in mapping_dict.items():
-        prepared_key = key
-        prepared_val = val
-        if not case_sensitive:
-            prepared_key = prepared_key.lower()
-        if not spaces_sensitive:
-            prepared_key = prepared_key.replace(" ", "")
-        prepared_dict[prepared_key] = prepared_val
-        
-    return MappingDict(
-        prepared_dict,
-        case_sensitive,
-        spaces_sensitive,
-    )
+    def __init__(self, df_posting, dataset, project):
+        self.dataset = dataset
+        self.project = project
+        self.df_new_loads = pd.DataFrame(df_posting["_dlt_load_id"].drop_duplicates()).copy(deep = True)
+        self.df_new_loads.rename(columns={"_dlt_load_id":"dlt_load_id"}, inplace=True)
 
-def find_position_in_text(
-    texts: Iterable,
-    mapping_dict: dict,
-) -> str:
-    for text in texts:
-        for key, val in mapping_dict.items():
-            if key in text:
-                return val
-    return None
+    def get_df(self):
+        return self.df_new_loads
 
-def collapse_city_groups(city_name: str, city_clusters: dict) -> str:
-    if not isinstance(city_name, str):
-        return "Other"
-    city_lc = re.sub("[^a-zA-Z]+", "", city_name).lower()
-    for region, keywords in city_clusters.items():
-        if any(re.sub("[^a-zA-Z]+", "", keyword) in city_lc for keyword in keywords):
-            return region
-    return "Other"
+    def start(self, pipeline_name):
+        self.df_new_loads["processed_by"] = pipeline_name
+        self.df_new_loads["started_at"] = dt.datetime.now()
+        df_to_bq(self.df_new_loads, '_jp_processed_loads', self.dataset, self.project, truncate=False)
+
+    def finish(self, pipeline_name):
+        self.df_new_loads["processed_by"] = pipeline_name
+        self.df_new_loads["finished_at"] = dt.datetime.now()
+        df_to_bq(df_new_loads, '_jp_processed_loads', self.dataset, self.project, truncate=False)
+            

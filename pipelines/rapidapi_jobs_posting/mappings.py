@@ -1,8 +1,11 @@
 from collections import namedtuple
+from typing import Iterable 
 
 MappingDict = namedtuple(
     "MappingDict", ["mapping_dict", "case_sensitive", "spaces_sensitive"]
 )
+
+#----------------------------------------------------mapping rules------------------------------------------------
 
 CITY_CLUSTERS = {
     "Rhein-Neckar": {"mannheim", "heidelberg", "walldorf", "ludwigshafen"},
@@ -93,3 +96,50 @@ POSITIONS = [
         True,
     ),
 ]
+
+#----------------------------------------------------functions------------------------------------------------
+
+def prepare_mapping_dict(
+    mapping_dict: dict, 
+    case_sensitive: bool = False, 
+    spaces_sensitive: bool = False
+) -> MappingDict:
+    
+    prepared_dict = {}
+    for key, val in mapping_dict.items():
+        prepared_key = key
+        prepared_val = val
+        if not case_sensitive:
+            prepared_key = prepared_key.lower()
+        if not spaces_sensitive:
+            prepared_key = prepared_key.replace(" ", "")
+        prepared_dict[prepared_key] = prepared_val
+        
+    return MappingDict(
+        prepared_dict,
+        case_sensitive,
+        spaces_sensitive,
+    )
+
+def find_position_in_text(
+    texts: Iterable,
+    mapping_dict: dict,
+) -> str:
+    for text in texts:
+        for key, val in mapping_dict.items():
+            if key in text:
+                return val
+    return None
+
+def collapse_city_groups(city_name: str, city_clusters: dict) -> str:
+    if not isinstance(city_name, str):
+        return "Other"
+    city_lc = re.sub("[^a-zA-Z]+", "", city_name).lower()
+    for region, keywords in city_clusters.items():
+        if any(re.sub("[^a-zA-Z]+", "", keyword) in city_lc for keyword in keywords):
+            return region
+    return "Other"
+
+
+
+

@@ -2,7 +2,10 @@ import sys
 import os
 
 CURRENT_DIRECTORY = os.path.dirname(__file__)
-PIPELINES_ROOT = os.path.join(CURRENT_DIRECTORY, '..')
+if CURRENT_DIRECTORY == "/opt/airflow/dags":
+    PIPELINES_ROOT = "/opt/airflow/repos/jobs-research/pipelines"
+else:
+    PIPELINES_ROOT = os.path.join(CURRENT_DIRECTORY, '..')
 if PIPELINES_ROOT not in sys.path:
     sys.path.append(PIPELINES_ROOT)
 
@@ -35,3 +38,5 @@ with DAG(
     )
 
     load_task >> transform_task
+
+globals()['dag'] = dag

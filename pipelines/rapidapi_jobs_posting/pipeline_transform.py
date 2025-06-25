@@ -35,18 +35,13 @@ from common.utils import (
     bq_table_to_df,
     bq_merge,
     print_dict,
+    google_sheet_to_df
 )
 from functions import (
     get_post_id,
     LoadsLogger,
 )
-from mappings import (
-    POSITIONS, 
-    CITY_CLUSTERS,
-    find_position_in_text, 
-    collapse_city_groups, 
-    prepare_mapping_dict,
-)
+import mappings
 from config import (
     PRINT_SQL,
     JOBS_POSTINGS_FINAL_COLS,
@@ -54,6 +49,7 @@ from config import (
     BQ_ADB_PARAMS,
     GCP_NAME,
     SERVER, #switching between test/prod parameters
+    MAPPING_RULES_EXPORT_URLS,
 )
 
 location = BQ_DWH_PARAMS[SERVER]['location']
@@ -62,6 +58,7 @@ source_tables_prefix = f"{GCP_NAME[SERVER]}.{BQ_DWH_PARAMS[SERVER]['dataset_name
 dataset = BQ_DWH_PARAMS[SERVER]['dataset_name']
 analytical_dataset = BQ_ADB_PARAMS[SERVER]['dataset_name']
 project = GCP_NAME[SERVER]
+
 pipeline_name = "jobs_posting_transform"
 
 def main():
@@ -120,7 +117,7 @@ def main():
     df_posting.drop(columns="_dlt_load_id", inplace=True)
     
     
-    #----------------------------------------------------deal with doubled posts------------------------------------------------
+    #----------------------------------------------------deal with doubled posts----------------------------------------
     
     #consider posts with the same title, description, location, and hiring company the same
     df_posting["job_id"] = df_posting[["title", "company", "city", "description"]].apply(get_post_id, axis=1, raw=True)
@@ -142,7 +139,7 @@ def main():
     df_posting.drop(columns=['_dlt_id', 'is_source'], inplace = True)
     
     
-    #----------------------------------------------------normalize attributes------------------------------------------------
+    #----------------------------------------------------normalize attributes-------------------------------------------
     
     #preparing fields for mapping attributes
     df_posting["title_lower_no_spaces"] = df_posting.title.map(
@@ -157,7 +154,7 @@ def main():
         prepare_mapping_dict(*mapping_dict) for mapping_dict in POSITIONS
     ]
     
-    #----------------------------------------------------normalize positions------------------------------------------------
+    #----------------------------------------------------normalize positions--------------------------------------------
     
     df_posting["position"] = None
     
@@ -188,17 +185,52 @@ def main():
     
     #----------------------------------------------------normalize cities------------------------------------------------
     
-    df_posting["city_group"] = df_posting.city.map(lambda x: collapse_city_groups(x, CITY_CLUSTERS))
-    df_posting.drop(columns="city", inplace=True)
+    city_clusters_rules = MappingRules(
+        "city_clusters", 
+        google_sheet_to_df(MAPPING_RULES_EXPORT_URLS["city_clusters"])
+    )
+
     
+    df_posting["city_cluster"] = df_posting["city"].map(lambda x: set(("Other")) if pd.isna(x) else city_rules.apply([x]))
+    # null -> other, Frankfurt
+    df_posting.drop(columns="city", inplace=True)
+
+
+     #----------------------------------------------------normalize experience requirements------------------------------
+
     df_posting['years_of_experience']=(df_posting['experience_requirements__months_of_experience']
                                            .map(lambda x: None if pd.isna(x) else ceil(x/12)
                                         )
     )
     df_posting.drop(columns="experience_requirements__months_of_experience", inplace=True)
+
+    #---------------------------------------------------create list of skills--------------------------------------------
+
+    skills_rules = MappingRules(
+        "skills", 
+        google_sheet_to_df(MAPPING_RULES_EXPORT_URLS["skills"])
+    )
+
+    df_posting["skills"] = df_posting["description"].map(lambda x: set() if pd.isna(x) else skills_rules.apply([x]))
+       
+    skills_set = rules_df.result.unique()
+    cloud_skills_sets = dict()
+    cloud_skills_sets["Google Cloud Platform"] = {x for x in skills_set if "Google" in x}
+    cloud_skills_sets["Microsoft Azure"] = {x for x in skills_set if "Azure" in x}
+    cloud_skills_sets["Amazon Web Services"] = {x for x in skills_set if "Amazon" in x}
+
+    for cloud, skills_set in cloud_skills_sets.items():
+        df_posting["skills"] = df_posting["skills"].map(
+            lambda x: x | {cloud} if x & skills_set else x
+        )
+        
+    df_posting["skills"] = df_posting["skills"].map(
+        lambda x: x | {"Cloud"} if x & clouds_set else x
+    )
+
+    df_skills = df_posting[["id", "position", "skills"]].explode("skills").dropna()
     
-    
-    #----------------------------------------------------update analytical tables------------------------------------------------
+    #----------------------------------------------------update analytical tables-----------------------------------------
     
     #download data to the tmp table
     jobs_columns = list(JOBS_POSTINGS_FINAL_COLS.keys())

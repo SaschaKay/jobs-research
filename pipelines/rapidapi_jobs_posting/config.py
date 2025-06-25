@@ -87,3 +87,12 @@ JOBS_POSTINGS_FINAL_COLS = {
     "years_of_experience": [SqlTypeNames.INTEGER],
     "description":         [SqlTypeNames.STRING],
 }
+
+MAPPING_RULES_EXPORT_URLS = {
+    "skills": 
+        "https://docs.google.com/spreadsheets/d/1clAiWIVMD5bCJRHJr9-p2vw9h99W5sByAtqThIGREpo/edit?gid=2082815936#gid=2082815936",
+    "city_clusters": 
+        "https://docs.google.com/spreadsheets/d/1clAiWIVMD5bCJRHJr9-p2vw9h99W5sByAtqThIGREpo/edit?gid=217199346#gid=217199346",
+    "positions": 
+        "https://docs.google.com/spreadsheets/d/1clAiWIVMD5bCJRHJr9-p2vw9h99W5sByAtqThIGREpo/edit?gid=1908800533#gid=1908800533",
+}

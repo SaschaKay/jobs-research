@@ -1,10 +1,17 @@
 import warnings
+from copy import deepcopy
+from sentinels import Sentinel 
 from typing import Iterable, Literal
-import re
-import pandas as pd
 
+import re
+import pandas as pd 
+
+from common.utils import check_literal_values 
+
+MISSING = Sentinel('MISSING')
 REPLACE_WITH_SPACES = r"[!\"$\%'()\+,\-./:;?]"
-    
+
+
 def prepare_text(
     text: str,
     case_sensitive: bool,
@@ -21,7 +28,35 @@ def prepare_text(
         text = re.sub(replace_with_spaces, " ", text)
         text = " " + text.strip() + " "
     return text
-    
+
+
+def resolve_frankfurt_conflict(cities: set) -> set:
+    """
+    Gets rid of the ambiguous "Frankfurt" label.
+    Replaces it with "Frankfurt (Main)", unless "Frankfurt (Oder)" was found.
+    """
+    has_main = "Frankfurt (Main)" in cities
+    has_oder = "Frankfurt (Oder)" in cities
+    has_ambiguous = "Frankfurt" in cities
+    has_any = has_main or has_oder or has_ambiguous
+
+    if not has_any:
+        return cities
+    elif has_main or has_oder:
+        return cities - {"Frankfurt"}
+    else:
+        return (cities - {"Frankfurt"})|{"Frankfurt (Main)"}
+
+
+def link_skills_to_clouds(skills_set: set) -> dict:
+    """Creates a dict with set of relevant skills for each cloud"""
+    cloud_skills_sets = dict()
+    cloud_skills_sets["Google Cloud Platform"] = {x for x in skills_set if "Google" in x}
+    cloud_skills_sets["Microsoft Azure"] = {x for x in skills_set if "Azure" in x}
+    cloud_skills_sets["Amazon Web Services"] = {x for x in skills_set if "Amazon" in x}
+    return cloud_skills_sets
+
+
 class _MappingDict:
     """
     Internal helper class used by MappingRules to store normalized keyword mappings.
@@ -37,12 +72,11 @@ class _MappingDict:
         prepare():
             Normalizes all keywords in the mapping according to the case and space sensitivity rules.
     """
-
     def __init__(
         self,
         rules: dict,
-        case_sensitive: bool = False,
-        spaces_sensitive: bool = False,
+        case_sensitive: bool=False,
+        spaces_sensitive: bool=False,
     ):
         self.rules = rules
         self.case_sensitive = case_sensitive
@@ -69,7 +103,7 @@ class _MappingDict:
             warnings.warn("MappingDict is already prepared.", UserWarning)
         return self
 
-
+MappingRulesFindFormat = Literal["any", "all"]
 class MappingRules:
     """
     Handles keyword-based mapping rules with configurable text normalization.
@@ -79,25 +113,28 @@ class MappingRules:
     optionally specifying case and space sensitivity. The rules are grouped
     by normalization settings and transformed into MappingDicts for fast lookup.
 
-    Attributes:
-        attr_name (str): The name of the attribute the rules apply to (used for error messages).
+    Arguments:
         rules_df (pd.DataFrame): DataFrame containing the rules, must have columns:
             ["keyword", "result", "case_sensitive", "spaces_sensitive"].
-        _is_prepared (bool): Indicates whether the rules have been processed into MappingDicts.
+        attr_name (str): The name of the attribute the rules apply to (used for error messages).
 
     Methods:
         prepare():
             Groups and transforms the rules into MappingDicts according to their normalization settings.
-        apply(texts, find):
-            Applies the mapping to a list of texts, returning either the first match ("any")
-            or a set of all matches ("all").
+        apply(texts, default_response=MISSING, find):
+            Applies the mapping to a list of texts, returning: 
+                - the first for find = "any"
+                - set of all matches for find = "all"
+        
+            If default_response is not specified, it defaults to:
+                - set() for find = "all"
+                - None for find = "any"
     """
-
-    def __init__(self, attr_name: str, rules_df: pd.DataFrame):
+    def __init__(self, rules_df: pd.DataFrame, attr_name: str=""):
         self.attr_name = attr_name
-        self.rules_df = rules_df[
+        self.rules_df = deepcopy(rules_df[
             ["keyword", "result", "case_sensitive", "spaces_sensitive"]
-        ]
+        ])
 
         # "keyword" is allowed to be null if "keyword" is meant to be the same as "result" 
         self._check_for_nulls()
@@ -148,26 +185,42 @@ class MappingRules:
             warnings.warn("MappingRules are already prepared.", UserWarning)
 
     def apply(
-        self, texts: Iterable[str], find: Literal["any", "all"] = "all"
+        self, 
+        texts: Iterable[str], 
+        default_response=MISSING,
+        find: MappingRulesFindFormat="all",
     ) -> str | set[str] | None:
+
+        check_literal_values(find, "find", MappingRulesFindFormat)
 
         if not self._is_prepared:
             self.prepare()
 
         if find == "all":
             result = set()
+            if default_response is MISSING: default_response = set()
         if find == "any":
             result = None
-
+            if default_response is MISSING: default_response = None 
+        something_found = False
+        
         for mapping_dict in self.map_dicts_prepared:
             for text in texts:
-                text = prepare_text(
-                    text, mapping_dict.case_sensitive, mapping_dict.spaces_sensitive
-                )
-                for key, val in mapping_dict.rules.items():
-                    if key in text:
-                        if find == "all":
-                            result.add(val)
-                        if find == "any":
-                            return val
-        return result
+                if not pd.isna(text):
+                    text = prepare_text(
+                        text, mapping_dict.case_sensitive, mapping_dict.spaces_sensitive
+                    )
+                    for key, val in mapping_dict.rules.items():
+                        if key in text:
+                            something_found = True
+                            if find == "all":
+                                result.add(val)
+                            if find == "any":
+                                return val
+                else:
+                        warnings.warn(
+                            f"One of the texts for search is {text}.",
+                            UserWarning,
+                        )
+
+        return result if something_found else default_response

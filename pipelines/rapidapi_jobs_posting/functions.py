@@ -84,6 +84,9 @@ def get_post_id(attr_list :Iterable) -> str:
 
 
 class LoadsLogger():
+    """
+    Logs dlt_load_id of processed batch in BQ. Used to filter processed batches.
+    """
     
     def __init__(self, df_posting, dataset, project):
         self.dataset = dataset

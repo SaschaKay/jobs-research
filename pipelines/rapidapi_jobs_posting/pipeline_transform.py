@@ -31,21 +31,20 @@ import datetime as dt
 from google.cloud import bigquery
 
 from common.utils import (
+    SqlMergeQuery,
     df_to_bq,
     bq_table_to_df,
-    bq_merge,
     print_dict,
+    google_sheet_to_df
 )
 from functions import (
     get_post_id,
     LoadsLogger,
 )
-from mappings import (
-    POSITIONS, 
-    CITY_CLUSTERS,
-    find_position_in_text, 
-    collapse_city_groups, 
-    prepare_mapping_dict,
+from mappings import(
+    MappingRules,
+    resolve_frankfurt_conflict,
+    link_skills_to_clouds
 )
 from config import (
     PRINT_SQL,
@@ -54,6 +53,7 @@ from config import (
     BQ_ADB_PARAMS,
     GCP_NAME,
     SERVER, #switching between test/prod parameters
+    MAPPING_RULES_EXPORT_URLS,
 )
 
 location = BQ_DWH_PARAMS[SERVER]['location']
@@ -62,6 +62,7 @@ source_tables_prefix = f"{GCP_NAME[SERVER]}.{BQ_DWH_PARAMS[SERVER]['dataset_name
 dataset = BQ_DWH_PARAMS[SERVER]['dataset_name']
 analytical_dataset = BQ_ADB_PARAMS[SERVER]['dataset_name']
 project = GCP_NAME[SERVER]
+
 pipeline_name = "jobs_posting_transform"
 
 def main():
@@ -76,7 +77,7 @@ def main():
     df_posting_load_query = f"""
     with processed_loads as (
       select dlt_load_id
-      from `{source_tables_prefix}_jp_processed_loads`
+      from `{source_tables_prefix}._jp_processed_loads`
       where processed_by = '{pipeline_name}'
       group by dlt_load_id
       having max(finished_at) is not Null
@@ -120,7 +121,7 @@ def main():
     df_posting.drop(columns="_dlt_load_id", inplace=True)
     
     
-    #----------------------------------------------------deal with doubled posts------------------------------------------------
+    #----------------------------------------------------deal with doubled posts----------------------------------------
     
     #consider posts with the same title, description, location, and hiring company the same
     df_posting["job_id"] = df_posting[["title", "company", "city", "description"]].apply(get_post_id, axis=1, raw=True)
@@ -128,8 +129,8 @@ def main():
     #marking the last post, only this one will go to the analytical table
     df_posting.sort_values(
         ["job_id", "date_created"], 
-        ascending = False, 
-        inplace = True
+        ascending=False, 
+        inplace=True
     )
     df_posting["is_source"] = df_posting.groupby(by="job_id").cumcount()==0
     
@@ -142,87 +143,136 @@ def main():
     df_posting.drop(columns=['_dlt_id', 'is_source'], inplace = True)
     
     
-    #----------------------------------------------------normalize attributes------------------------------------------------
+    #----------------------------------------------------normalize attributes-------------------------------------------
     
-    #preparing fields for mapping attributes
-    df_posting["title_lower_no_spaces"] = df_posting.title.map(
-        lambda x: x.lower().replace(" ", "")
+    #normalize positions
+
+    positions_rules = MappingRules(
+        google_sheet_to_df(
+            MAPPING_RULES_EXPORT_URLS["positions"]),
+            "positions",
     )
-    df_posting["occupation_lower_no_spaces"] = df_posting.occupation.map(
-        lambda x: x.lower().replace(" ", "")
+    
+    df_posting["positions"] = df_posting[["title", "occupation"]].apply(
+        positions_rules.apply, axis=1
+    )
+
+    df_positions=(
+        df_posting[["job_id", "title", "occupation", "positions"]]
+            .explode("positions")
+            .dropna()
+    )
+    df_positions.rename(
+        columns={
+            "title": "title_raw", 
+            "occupation": "occupation_raw",
+            "positions": "position",
+            },
+        inplace=True
+    )
+    df_posting.drop(
+        columns=["title","occupation"], 
+        inplace=True
     )
     
-    #preparing mapping rules
-    map_dicts_positions_prepared = [
-        prepare_mapping_dict(*mapping_dict) for mapping_dict in POSITIONS
-    ]
+    #normalize citie
     
-    #----------------------------------------------------normalize positions------------------------------------------------
+    city_clusters_rules = MappingRules(
+        google_sheet_to_df(MAPPING_RULES_EXPORT_URLS["city_clusters"]),
+        "city_clusters",
+    )
+
+    df_posting["city_clusters"] = df_posting["city"].map(
+        lambda x: (set() if pd.isna(x) else city_clusters_rules.apply([x]))
+    )
+    df_posting["city_clusters"] = df_posting["city_clusters"].map(resolve_frankfurt_conflict)
     
-    df_posting["position"] = None
-    
-    for md in map_dicts_positions_prepared:
-        if not (md.case_sensitive & md.spaces_sensitive):
-            text_columns = ["title_lower_no_spaces", "occupation_lower_no_spaces"]
-        elif md.case_sensitive & md.spaces_sensitive:
-            text_columns = ["title", "occupation"]
-        else:
-            raise ValueError(
-                "You need a small refinement to use case_sensitive != spaces_sensitive"
-            )
-        df_posting["position"] = df_posting[["position", *text_columns]].apply(
-            lambda x: (
-                x.iloc[0]
-                if x.iloc[0] is not None
-                else find_position_in_text(x.iloc[1:], md.mapping_dict)
-            ),
-            axis=1,
-        )
-        
-    df_posting.drop(columns=[
-        "title_lower_no_spaces",
-        "occupation_lower_no_spaces",
-        "title",
-        "occupation"
-    ], inplace=True)
-    
-    #----------------------------------------------------normalize cities------------------------------------------------
-    
-    df_posting["city_group"] = df_posting.city.map(lambda x: collapse_city_groups(x, CITY_CLUSTERS))
-    df_posting.drop(columns="city", inplace=True)
-    
-    df_posting['years_of_experience']=(df_posting['experience_requirements__months_of_experience']
-                                           .map(lambda x: None if pd.isna(x) else ceil(x/12)
-                                        )
+    df_city_clusters=(
+        df_posting[["job_id", "city", "city_clusters"]]
+            .explode("city_clusters")
+            .dropna()
+    )
+    df_city_clusters.rename(
+        columns={
+            "city": "city_raw", 
+            "city_clusters": "city_cluster"
+        }, 
+        inplace=True)
+    df_posting.drop(columns = "city", inplace=True)
+
+    #normalize experience requirements
+
+    df_posting['years_of_experience']=(
+        df_posting['experience_requirements__months_of_experience']
+            .map(lambda x: None if pd.isna(x) else ceil(x/12))
     )
     df_posting.drop(columns="experience_requirements__months_of_experience", inplace=True)
-    
-    
-    #----------------------------------------------------update analytical tables------------------------------------------------
+
+    #create list of skills
+
+    skills_rules = MappingRules(
+        google_sheet_to_df(MAPPING_RULES_EXPORT_URLS["skills"]), "skills"
+    )
+
+    df_posting["skills"] = df_posting["description"].map(lambda x: skills_rules.apply([x]))
+
+    all_skills = skills_rules.rules_df.result.unique()
+    cloud_skills_dict = link_skills_to_clouds(all_skills)
+
+
+    for cloud, cloud_skills in cloud_skills_dict.items():
+    # enrich the set of skills with high-level cloud platform label
+        df_posting["skills"] = df_posting["skills"].map(
+            lambda all_skills: 
+                all_skills | {cloud} 
+                    if (all_skills & cloud_skills) 
+                        else all_skills
+        )
+
+    clouds_set = set(cloud_skills_dict.keys())
+    # enrich the set of skills with high-level label 'Cloud'
+    df_posting["skills"] = df_posting["skills"].map(
+        lambda all_skills:
+             all_skills | {"Cloud"} 
+                if all_skills & clouds_set 
+                    else all_skills
+    )
+
+    df_posting["skills"] = df_posting["skills"].map(list) #for downloading in Big Query
+    df_skills = (
+        df_posting[["job_id", "skills"]]
+            .explode("skills")
+            .dropna()
+    )
+    df_skills.rename(columns={"skills": "skill"}, inplace=True)
+
+    #----------------------------------------------------update analytical tables-----------------------------------------
     
     #download data to the tmp table
-    jobs_columns = list(JOBS_POSTINGS_FINAL_COLS.keys())
     df_posting.rename(columns = {"job_id": "id"}, inplace=True)
-    df_posting = df_posting[jobs_columns]
+    df_posting = df_posting[JOBS_POSTINGS_FINAL_COLS]
     df_to_bq(df_posting, '_jp_jobs_batch', dataset, project, truncate=True)
+    df_to_bq(df_skills, "_jp_jobs_skills_batch", dataset, project, truncate=True)
+    df_to_bq(df_positions, "_jp_jobs_positions_batch", dataset, project, truncate=True)
+    df_to_bq(df_city_clusters, "_jp_jobs_city_clusters_batch", dataset, project, truncate=True)
     
-    # save info about new ids 
+    #save info about new ids 
     df_dlt_to_post_id.rename(columns = {"_dlt_id": "dlt_id"}, inplace=True)
     df_dlt_to_post_id['matched_at'] = dt.datetime.now()
     df_to_bq(df_dlt_to_post_id, '_jp_dlt_ids_matching', dataset, project, truncate=False)
     
     #update main analytical table
-    bq_merge(
+    job_result = SqlMergeQuery(
         f"{project}.{analytical_dataset}.jobs",
-        f"{project}.{dataset}._jp_jobs_batch", 
+        f"{project}.{dataset}._jp_jobs_batch",  
         "id",
-        jobs_columns[1:], #exclude key column
-        print_sql = PRINT_SQL,
-    )
+        JOBS_POSTINGS_FINAL_COLS,
+        JOBS_POSTINGS_FINAL_COLS,
+    ).execute_bq()
+    job_result._properties.get("statistics").get("query").get("dmlStats")
     
     # log
     new_loads.finish(pipeline_name)
 
 if __name__=="__main__":
     main()
-    

@@ -44,7 +44,7 @@ END_PAGE = None  # the number of the last page to fetch
 
 # Google Cloud parameters
 
-SERVER = "prod" # can be "dev" or "prod"
+SERVER = "dev" # can be "dev" or "prod"
 
 GCP_NAME = {
     'dev':  "x-avenue-450615-c3",
@@ -65,7 +65,7 @@ GCS_PARAMS = {
 }
 
 BQ_DWH_PARAMS = {
-    "dev":  {"dataset_name": "job_postings_test", "location": "europe-west1"},
+    "dev":  {"dataset_name": "jobs_postings_test", "location": "europe-west1"},
     "prod": {"dataset_name": "jobs_postings",      "location": "europe-west1"},
 }
 
@@ -76,14 +76,26 @@ BQ_ADB_PARAMS = {
 
 #data transform parameters
 
-JOBS_POSTINGS_FINAL_COLS = {
-    "id":                  [SqlTypeNames.STRING],
-    "date_created":        [SqlTypeNames.DATE],
-    "company":             [SqlTypeNames.STRING],
-    "city_group":          [SqlTypeNames.STRING],
-    "position":            [SqlTypeNames.STRING],
-    "portal":              [SqlTypeNames.STRING],
-    "url":                 [SqlTypeNames.STRING],
-    "years_of_experience": [SqlTypeNames.INTEGER],
-    "description":         [SqlTypeNames.STRING],
+JOBS_POSTINGS_FINAL_COLS = [
+    "id",
+    "date_created",
+    "company",
+    #"city_group",
+    #"position",
+    "portal",
+    "url",
+    "years_of_experience",
+    "description",
+    "city_clusters",
+    "positions",
+    "skills"
+]
+
+MAPPING_RULES_EXPORT_URLS = {
+    "skills": 
+        "https://docs.google.com/spreadsheets/d/1clAiWIVMD5bCJRHJr9-p2vw9h99W5sByAtqThIGREpo/edit?gid=2082815936#gid=2082815936",
+    "city_clusters": 
+        "https://docs.google.com/spreadsheets/d/1clAiWIVMD5bCJRHJr9-p2vw9h99W5sByAtqThIGREpo/edit?gid=217199346#gid=217199346",
+    "positions": 
+        "https://docs.google.com/spreadsheets/d/1clAiWIVMD5bCJRHJr9-p2vw9h99W5sByAtqThIGREpo/edit?gid=1908800533#gid=1908800533",
 }

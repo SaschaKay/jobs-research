@@ -154,8 +154,7 @@ def paginated_source(
         
         # Input checks:
 
-        allowed_response_formats = get_args(PaginatedSourceResponseFormat)
-        check_literal_values(response_format, "response_format", allowed_response_formats)
+        check_literal_values(response_format, "response_format", PaginatedSourceResponseFormat)
 
         if end_page is None and not allow_no_end_page:
             raise ValueError("Define end_page or set allow_no_end_page=True.")

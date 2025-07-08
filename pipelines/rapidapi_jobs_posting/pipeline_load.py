@@ -1,6 +1,9 @@
-import warnings
 import sys
 import os
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 # adding paths for project modules
 CUR_DIR_WARNING = (
@@ -11,7 +14,7 @@ try:
     CURRENT_DIRECTORY = os.path.dirname(__file__)
 except NameError:
     CURRENT_DIRECTORY = os.getcwd()
-    warnings.warn(CUR_DIR_WARNING)
+    logging.debug(CUR_DIR_WARNING)
 
 if CURRENT_DIRECTORY not in sys.path:
     sys.path.append(CURRENT_DIRECTORY)
@@ -23,7 +26,7 @@ PROJECT_ROOT = os.path.abspath(
 
 if PROJECT_ROOT not in sys.path:
     sys.path.append(PROJECT_ROOT)
-    print(f"{PROJECT_ROOT} was appended to sys.path")
+    logging.debug(f"{PROJECT_ROOT} was appended to sys.path")
 
 from copy import deepcopy
 import dlt
@@ -31,7 +34,7 @@ import dlt
 from common.utils import (
     paginated_source,
     get_gcp_key,
-    print_dict,
+    format_dict_str,
 )
 from config import ( 
     #request parameters
@@ -50,7 +53,6 @@ from functions import flattened_jobs_posting, count_pages
 
 BQ_PARAMS = BQ_DWH_PARAMS
 
-
 def get_end_page()-> int:
     """
     Get the maximum number of pages for the job postings.
@@ -67,7 +69,7 @@ def get_end_page()-> int:
         )
         end_page = max_page if END_PAGE is None else min(max_page, END_PAGE) 
  
-    print(f'Pages from {START_PAGE} to {end_page} will be requested')
+    logger.info(f'Pages from {START_PAGE} to {end_page} will be requested')
     return end_page
 
 def rapidapi_jobs_posting(end_page: int = 1) -> None:
@@ -75,15 +77,8 @@ def rapidapi_jobs_posting(end_page: int = 1) -> None:
     Get job postings from RapidAPI, upload raw data to Google Cloud Storage (GCS), and normalized data to BigQuery.
     The function uses the dlt library to create a pipeline that extracts job postings from the RapidAPI service.
     """
-    print(SERVER)
-    print("")
-    print_dict(GCS_PARAMS[SERVER], "Raw data will be loaded in GCS:")
-    print_dict(BQ_PARAMS[SERVER], "Processed data will be loaded in BQ:")
-    
-    print("")
-    for key, val in QUERYPARAMS.items():
-        print(f"{key}: {val}")
-    print("")
+    logger.info("Getting postings data...")
+    logger.debug( f"Server: {SERVER}")
     
     source = paginated_source(
         url=URL.format(request_type="search"),
@@ -115,8 +110,7 @@ def rapidapi_jobs_posting(end_page: int = 1) -> None:
         #credentials=get_gcp_key(),
     )
 
-    print(pipeline_info)
-
+    logger.info(str(pipeline_info))
 
 
 def main():

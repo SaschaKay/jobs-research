@@ -1,6 +1,9 @@
-import warnings
 import sys
 import os
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 # adding paths for project modules
 CUR_DIR_WARNING = (
@@ -11,7 +14,7 @@ try:
     CURRENT_DIRECTORY = os.path.dirname(__file__)
 except NameError:
     CURRENT_DIRECTORY = os.getcwd()
-    warnings.warn(CUR_DIR_WARNING)
+    logger.debug(CUR_DIR_WARNING)
 
 if CURRENT_DIRECTORY not in sys.path:
     sys.path.append(CURRENT_DIRECTORY)
@@ -23,7 +26,7 @@ PROJECT_ROOT = os.path.abspath(
 
 if PROJECT_ROOT not in sys.path:
     sys.path.append(PROJECT_ROOT)
-    print(f"{PROJECT_ROOT} was added to sys.path")
+    logger.debug(f"{PROJECT_ROOT} was added to sys.path")
 
 from math import ceil
 import pandas as pd
@@ -33,8 +36,6 @@ from google.cloud import bigquery
 from common.utils import (
     SqlMergeQuery,
     df_to_bq,
-    bq_table_to_df,
-    print_dict,
     google_sheet_to_df
 )
 from functions import (
@@ -47,7 +48,6 @@ from mappings import(
     link_skills_to_clouds
 )
 from config import (
-    PRINT_SQL,
     JOBS_POSTINGS_FINAL_COLS,
     BQ_DWH_PARAMS,
     BQ_ADB_PARAMS,
@@ -64,6 +64,7 @@ analytical_dataset = BQ_ADB_PARAMS[SERVER]['dataset_name']
 project = GCP_NAME[SERVER]
 
 pipeline_name = "jobs_posting_transform"
+logger.info(f"Running pipeline {pipeline_name}")
 
 def main():
         
@@ -107,13 +108,12 @@ def main():
     inner join new_loads nl on jp._dlt_load_id = nl.load_id
     where locale = "en_DE"
     """
-    if PRINT_SQL:
-        print(df_posting_load_query)
+    logger.debug(f"Fetching new data... \n{df_posting_load_query}")
     df_posting = bq_client.query(df_posting_load_query).to_dataframe()
-    print(f"Fetched {len(df_posting)} raws from `{source_tables_prefix}.jobs_posting`")
+    logger.info(f"Fetched {len(df_posting)} raws from `{source_tables_prefix}.jobs_posting`")
     
     if df_posting.empty:
-        print("No data to process")
+        logger.warning("⚠️  No data to process")
         sys.exit(0)
     
     new_loads = LoadsLogger(df_posting, dataset, project)
@@ -262,14 +262,13 @@ def main():
     df_to_bq(df_dlt_to_post_id, '_jp_dlt_ids_matching', dataset, project, truncate=False)
     
     #update main analytical table
-    job_result = SqlMergeQuery(
+    SqlMergeQuery(
         f"{project}.{analytical_dataset}.jobs",
         f"{project}.{dataset}._jp_jobs_batch",  
         "id",
         JOBS_POSTINGS_FINAL_COLS,
         JOBS_POSTINGS_FINAL_COLS,
     ).execute_bq()
-    job_result._properties.get("statistics").get("query").get("dmlStats")
     
     # log
     new_loads.finish(pipeline_name)

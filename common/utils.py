@@ -3,14 +3,16 @@ import time
 
 import json
 from copy import deepcopy
+import logging
 from typing import Literal, Iterable, get_args
-from sentinels import Sentinel
-import warnings
 
 import pandas as pd
 import dlt
 from dlt.sources.helpers import requests
 from google.cloud import storage, bigquery
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 def check_literal_values(val: str, arg_name: str, literal_type) -> str:
     valid_values = get_args(literal_type)
@@ -22,11 +24,12 @@ def check_literal_values(val: str, arg_name: str, literal_type) -> str:
         )
 
 
-def print_dict(dict_to_print: dict, header: str = ""):
-    print(header)
-    for key, val in dict_to_print.items():
-        print(f"{key}: {val}")
-    print("")
+def format_dict_str(dict_to_print: dict, header: str = "") -> str:
+    message = (
+        f"{header}\n" 
+        + ("\n".join([f"{key}: {val}" for key, val in dict_to_print.items()]))
+    )
+    return message
 
 
 def get_gcp_key():
@@ -60,7 +63,7 @@ def df_to_bq(df, table_name, dataset, project, bq_client=None, truncate=False):
     if truncate:
         job = bq_client.query(f"truncate table {full_table_name}")
         job.result()
-        print(f"{full_table_name} truncated")
+        logger.info(f"{full_table_name} truncated")
         
     job_config = bigquery.LoadJobConfig(
         write_disposition=(
@@ -73,7 +76,7 @@ def df_to_bq(df, table_name, dataset, project, bq_client=None, truncate=False):
         df, full_table_name, job_config
     ) 
     job.result()
-    print(
+    logger.info(
         "Loaded {} rows to {}".format(
             len(df), full_table_name
         )
@@ -81,12 +84,11 @@ def df_to_bq(df, table_name, dataset, project, bq_client=None, truncate=False):
 
 
 def bytes_to_gcs(content: bytes, gcs_bucket: str, path: str): 
-    print(gcs_bucket, path)
     client = storage.Client()
     bucket = client.bucket(gcs_bucket)
     blob = bucket.blob(path)
     blob.upload_from_string(content, content_type="application/octet-stream")
-    print(f"Uploaded {path} to GCS")
+    logger.debug(f"Uploaded {path} to GCS bucket {gcs_bucket}")
 
 
 def flatten_dict_by_key(nested_dict: dict, keys: Iterable):
@@ -179,12 +181,32 @@ def paginated_source(
 
         page = start_page
 
+        logger.info(
+            f"dlt resource going to request data...\n"
+            f"URL: {url}\n" 
+            f"Pages form {start_page} to {end_page if end_page else 'first empty page'}"
+        )
+        logger.debug(f"Response format: {PaginatedSourceResponseFormat}")
+        if headers:
+            logger.debug(f"Headers: {headers}")
+        logger.debug(
+            format_dict_str(
+                queryparams,
+                "Request parameters:",
+            )
+        )
+        logger.debug(f"Delay: {delay}")
+
+        if upload_to_gcs:
+            logger.info(f"Raw data will be loaded in GCS bucket '{gcs_bucket}', path '{storage_path}, file name pattern '{file_name}'")
+
         while True:
             # Stop at end_page if defined
             if end_page is not None and page > end_page:
+                logger.debug("The last page was received")
                 break
 
-            print(f"Requesting page {page}...")
+            logger.debug(f"Requesting page {page}...")
 
             # Create a shallow copy of the queryparams dict to avoid mutating the input
             params = dict(queryparams or {})
@@ -196,15 +218,15 @@ def paginated_source(
             elif response_format == "json":
                 data = response.json()["result"]
 
-            print(f"Page {page} was received")
+            logger.debug(f"Page {page} was received")
 
             if not data:
-                warnings.warn(f"No data was recieved in a response for page {page}")
+                logger.debug(f"No data was received in a response for page {page}")
                 break
 
             # Upload raw data to file in Google Cloud Storage if required
             if upload_to_gcs:
-                print(f"Loading page {page} content to GCS...")
+                logger.debug(f"Loading page {page} content to GCS...")
                 full_file_path = full_path + f"_{page}.{response_format}"
                 bytes_to_gcs(
                     response.content,
@@ -221,31 +243,55 @@ def paginated_source(
 
     return get_pages
 
-def bq_check_duplicates(
+
+def check_duplicates_bq(
     table_full_name: str, 
-    key_columns: str|Iterable,
+    key_columns: Iterable,
     bq_client=None, 
     raise_error: bool = False
-):
-    if type(key_columns) == str:
-        group_by_clause=key_columns
-    else:
-        group_by_clause=", ".join(key_columns)
+) -> bool:
+    """
+Checks for duplicate rows in a BigQuery table based on a set of key columns.
 
-    query=f"""
-        select count(1)
-        from (
-            select 1
-            from {table_full_name}
-            group by {group_by_clause}
-            having count(1)=1
-    )"""
+Args:
+    table_full_name (str): Full table name in the format `project.dataset.table`.
+    key_columns (Iterable): List or tuple of column names that define uniqueness.
+    bq_client (bigquery.Client, optional): Existing BigQuery client.
+    raise_error (bool): If True, raises ValueError when duplicates are found.
+
+Returns:
+    bool: True if duplicates are found, otherwise False.
+"""
+
+    group_by_clause = ", ".join(key_columns)
+
+    query = f"""
+        SELECT COUNT(1) AS duplicate_count
+        FROM (
+            SELECT 1
+            FROM {table_full_name}
+            GROUP BY {group_by_clause}
+            HAVING COUNT(1) > 1
+        )
+    """
 
     if bq_client is None:
         bq_client = bigquery.Client()
-    job = bq_client.query(self._query)
-    job.result()
 
+    job = bq_client.query(query)
+    result  = job.result()
+    row = list(result)[0]
+    duplicate_count = row["duplicate_count"]
+
+    if duplicate_count > 0:
+        message = f"Found {duplicate_count} duplicates in {table_full_name} based on keys: {key_columns}"
+        if raise_error:
+            raise ValueError(message)
+        else:
+            logger.warning(message)
+        return True
+
+    return False
 
 
 class SqlMergeQuery():
@@ -256,6 +302,7 @@ class SqlMergeQuery():
         key_columns: str|Iterable,
         insert_columns: str|Iterable = (),
         update_columns: str|Iterable = (),
+        raise_duplicates_error: bool = True,
     ):
 
         if not insert_columns and not update_columns:
@@ -265,19 +312,20 @@ class SqlMergeQuery():
 
         self.destination_table_full_name = destination_table_full_name
         self.source_table_full_name = source_table_full_name
+        self.raise_duplicates_error = raise_duplicates_error
 
-        #put all _columns parametrs in lists
-        if type(key_columns)==str: 
+        #put all _columns parameters in lists
+        if type(key_columns) is str: 
             self.key_columns=[key_columns]
         else: 
             self.key_columns=list(key_columns)
 
-        if type(insert_columns)==str: 
+        if type(insert_columns) is str: 
             self.insert_columns=[insert_columns]
         else:
             self.insert_columns=list(insert_columns)
 
-        if type(update_columns)==str: 
+        if type(update_columns) is str: 
             self.update_columns=[update_columns]
         else:
             self.update_columns=[col for col in update_columns if col not in self.key_columns]
@@ -315,7 +363,8 @@ class SqlMergeQuery():
                 f"\n        {insert_values_clause}"
                 "\n    )"
             )
-        else: insert_statement=""
+        else: 
+            insert_statement=""
         
         self._query = (
             f"MERGE {self.destination_table_full_name} t"
@@ -329,6 +378,30 @@ class SqlMergeQuery():
     def execute_bq(self, bq_client=None):
         if bq_client is None:
             bq_client = bigquery.Client()
+
+        # Check for duplicates before executing merge
+        check_duplicates_bq(
+            table_full_name=self.source_table_full_name, 
+            key_columns=self.key_columns,
+            bq_client=bq_client, 
+            raise_error = self.raise_duplicates_error
+        )
+        check_duplicates_bq(
+            table_full_name=self.destination_table_full_name, 
+            key_columns=self.key_columns,
+            bq_client=bq_client, 
+            raise_error = self.raise_duplicates_error
+        )
+
+        logger.debug(f"Executing query... \n{self._query}")
         job = bq_client.query(self._query)
         job.result()
+        result_info = job._properties.get("statistics").get("query").get("dmlStats")
+        logger.info(
+            f"Merged {self.source_table_full_name} into {self.destination_table_full_name}"
+            f"\nKey columns: self.key_columns"
+            f"\nInserted rows: {result_info.get('insertedRowCount')}"
+            f"\nUpdated rows: {result_info.get('updatedRowCount')}"
+        )
+
         return job

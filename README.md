@@ -49,10 +49,3 @@ Data loaded in Pandas DataFrames, processed, and downloaded to a distinct analyt
 9. Open Airflow Webserver UI. You should see jobs_postings_pipeline in the list of DUGs there. 
     ![image](https://github.com/user-attachments/assets/3688df19-af90-407c-b50b-68d2b153125d)
 10. Trigger it with ![image](https://github.com/user-attachments/assets/d5b3a283-6fbc-4aa2-9ca1-c4bd52c3e47c)
-
-
-
-
-   
-
-

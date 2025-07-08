@@ -1,10 +1,7 @@
 from key import API_KEY
-from google.cloud.bigquery.enums import SqlTypeNames
 from datetime import datetime, timedelta
 
 PROJECT_ROOT_RELATIVE = "../../"
-
-PRINT_SQL = True #complicated SQL scripts will be printed for easier debugging
 
 # query parameters for the API
 
@@ -37,7 +34,7 @@ HEADERS = {
 
 START_PAGE = 1  # the number of the first page to fetch
 # set N if the pipeline failed on N requests
-END_PAGE = None  # the number of the last page to fetch
+END_PAGE = 1  # the number of the last page to fetch
 # None -> calculate max_page based on the total count of job postings
 # max_page = 2 -> set max_page to 2 for testing on a small number of requests
 

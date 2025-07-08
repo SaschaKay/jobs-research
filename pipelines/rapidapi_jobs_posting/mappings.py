@@ -1,7 +1,7 @@
-import warnings
 from copy import deepcopy
 from sentinels import Sentinel 
 from typing import Iterable, Literal
+import logging
 
 import re
 import pandas as pd 
@@ -10,6 +10,9 @@ from common.utils import check_literal_values
 
 MISSING = Sentinel('MISSING')
 REPLACE_WITH_SPACES = r"[!\"$\%'()\+,\-./:;?]"
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 def prepare_text(
@@ -93,14 +96,14 @@ class _MappingDict:
                 prepared_rules[prepared_key] = val
                 for char in REPLACE_WITH_SPACES:
                     if self.spaces_sensitive and prepared_key != key and char in key:
-                        warnings.warn(
+                        logger.warning(
                             f"'{char}' in the keyword '{key}' was replaced with a space.",
                             UserWarning,
                         )
             self.rules = prepared_rules
             self.is_prepared = True
         else:
-            warnings.warn("MappingDict is already prepared.", UserWarning)
+            logger.warning("MappingDict is already prepared.", UserWarning)
         return self
 
 MappingRulesFindFormat = Literal["any", "all"]
@@ -182,7 +185,7 @@ class MappingRules:
             ]
             self._is_prepared = True
         else:
-            warnings.warn("MappingRules are already prepared.", UserWarning)
+            logger.warning("MappingRules are already prepared.", UserWarning)
 
     def apply(
         self, 
@@ -218,7 +221,7 @@ class MappingRules:
                             if find == "any":
                                 return val
                 else:
-                        warnings.warn(
+                        logger.warning(
                             f"One of the texts for search is {text}.",
                             UserWarning,
                         )

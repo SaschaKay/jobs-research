@@ -1,12 +1,14 @@
 # English Speaking Data Specialists in Germany. Job Market Analytics.
-
 A cloud-based data pipeline to monitor and analyze job postings in Germany. 
-Dashboard 
 
 Project uses external [API](https://rapidapi.com/techmap-io-techmap-io-default/api/daily-international-job-postings), which scrapes postings data from numerous portals.
 For analysis, postings with 'Data' in the title were used. 
 
 ![image](https://github.com/user-attachments/assets/492003fe-ccb7-40af-ad3c-81ef673796aa)
+
+## Links
+* [Project's dashboard](https://lookerstudio.google.com/u/2/reporting/e029baeb-1698-40d5-8670-e279f4afe7c5/page/tEnnC/edit) _(in process...)_
+* Infrastructure repository [job-research-infrastracture](https://github.com/SaschaKay/job-research-infrastracture).
 
 ## IaC
 Set up with Terraform:

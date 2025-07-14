@@ -43,7 +43,8 @@ Data loaded in Pandas DataFrames, processed, and downloaded to a distinct analyt
 2. Transfer views into DBT.
 3. Create a database schema visualisation and checks in DBT.
 4. Add an article with data cleaning details.
-5. Break the data transform DAG into several sub-DAGs, with downloading intermediate results into BigQuery. 
+5. Break the data transform DAG into several sub-DAGs, with downloading intermediate results into BigQuery.
+6. Add monitoring and autotests. 
 
 ## Reproducibility
 1. Key and instructions for the API can be obtained [here](https://rapidapi.com/techmap-io-techmap-io-default/api/daily-international-job-postings) (25 free requests are available).

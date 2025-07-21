@@ -61,8 +61,7 @@ class PipelineParams:
         "end_page": {
             # the number of the last page to fetch
             # None -> calculate max_page based on the total count of job postings
-            # max_page = 2 -> set max_page to 2 for testing on a small number of requests
-            "dev": 2,
+            "dev": 1,
             "prod": None,
         },
         "date_created_delta_days": 7,

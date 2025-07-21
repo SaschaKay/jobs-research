@@ -51,6 +51,3 @@ with DAG(
     load_task >> transform_task
 
 globals()["dag"] = dag
-
-if __name__ == "__main__":
-    dag.test()

@@ -28,93 +28,92 @@ if PROJECT_ROOT not in sys.path:
     sys.path.append(PROJECT_ROOT)
     logging.debug(f"{PROJECT_ROOT} was appended to sys.path")
 
+from datetime import timedelta
 from copy import deepcopy
 import dlt
 
 from common.utils import (
     paginated_source,
     get_gcp_key,
-    format_dict_str,
 )
-from config import ( 
-    #request parameters
-    START_PAGE,
-    END_PAGE, 
-    QUERYPARAMS, 
-    HEADERS, 
-    URL,
-    #destinations parameters
-    GCS_PARAMS,
-    BQ_DWH_PARAMS,
-    #switching between test/prod parameters
-    SERVER
-)
+
 from functions import flattened_jobs_posting, count_pages
 
-BQ_PARAMS = BQ_DWH_PARAMS
 
-def get_end_page()-> int:
+def calculate_creation_date(execution_date, delta_days):
+    date_created = (execution_date - timedelta(days=delta_days)).strftime("%Y-%m-%d")
+    month_created_folder = date_created.replace("-", "_")[:7]
+    date_created_folder = date_created.replace("-", "_")
+    return date_created, month_created_folder, date_created_folder
+
+def get_end_page(url, headers, query_params, end_page=None)-> int:
     """
     Get the maximum number of pages for the job postings.
     If end_page is not defined, it will be calculated based on the total count of job postings.
     If end_page is defined, it will be used as is.
     """
-    if END_PAGE ==1: 
-        end_page = END_PAGE
-    else:
-        queryparams_parquet = deepcopy(QUERYPARAMS)
+    if end_page != 1:
+        queryparams_parquet = deepcopy(query_params)
         queryparams_parquet["format"] = "parquet"
         max_page = count_pages(
-            URL.format(request_type="count"), queryparams=queryparams_parquet, headers=HEADERS
+            url.format(request_type="count"), queryparams=queryparams_parquet, headers=headers
         )
-        end_page = max_page if END_PAGE is None else min(max_page, END_PAGE) 
- 
-    logger.info(f'Pages from {START_PAGE} to {end_page} will be requested')
+        if end_page is None:
+            end_page = max_page 
+        else:
+            end_page = min(max_page, end_page) 
     return end_page
 
-def rapidapi_jobs_posting(end_page: int = 1) -> None:
-    """
-    Get job postings from RapidAPI, upload raw data to Google Cloud Storage (GCS), and normalized data to BigQuery.
-    The function uses the dlt library to create a pipeline that extracts job postings from the RapidAPI service.
-    """
+
+def main(**kwargs):
+    params = kwargs["params"]
+    logger.info(f"Server: {params['server']}")
+    execution_date = kwargs["execution_date"]
+    logger.info(f"Execution Date: {execution_date}")
+
+    gcp_params = params["gcp"]
+    queryparams = params["queryparams"]
+    headers = params["query_headers"]
+    url = params["url"]
+
+    query_settings = params["query_settings"]
+    date_created_delta_days = query_settings["date_created_delta_days"]
+    start_page = query_settings["start_page"]
+    end_page = query_settings["end_page"]
+
+    date_created, month_created_folder, date_created_folder = calculate_creation_date(execution_date, date_created_delta_days)
+    queryparams["dateCreated"] = date_created
+    end_page = get_end_page(url, headers, queryparams, end_page)
+
+    logger.info(f'Pages from {start_page} to {end_page} will be requested')
     logger.info("Getting postings data...")
-    logger.debug( f"Server: {SERVER}")
-    
+
+    #Creating source for dlt pipeline
     source = paginated_source(
-        url=URL.format(request_type="search"),
+        url=url.format(request_type="search"),
         response_format="json",
-        queryparams=QUERYPARAMS,
-        headers=HEADERS,
-        start_page=START_PAGE,
+        queryparams=queryparams,
+        headers=headers,
+        start_page=start_page,
         end_page=end_page,
         upload_to_gcs=True, #upload raw data to GCS
-        gcs_bucket=GCS_PARAMS[SERVER]["bucket"],
-        storage_path=GCS_PARAMS[SERVER]["storage_path"],
-        file_name=GCS_PARAMS[SERVER]['file_name'],
+        gcs_bucket=gcp_params["gcs_bucket"],
+        storage_path=gcp_params["gcs_storage_path"],
+        file_name=gcp_params["gcs_file_name_pattern"].format(month_created=month_created_folder, date_created=date_created_folder),
     )
-
+        
+    #Get job postings from RapidAPI, upload raw data to Google Cloud Storage (GCS), and normalized data to BigQuery.
     pipeline = dlt.pipeline(
         pipeline_name="job_postings_to_bq_pipeline",
         destination=dlt.destinations.bigquery(
             credentials=get_gcp_key(),
-            dataset_name=BQ_PARAMS[SERVER]['dataset_name'],
-            location=BQ_PARAMS[SERVER]['location']
+            dataset_name=gcp_params["bq_dwh_params"]["dataset_name"],
+            location=gcp_params["bq_dwh_params"]["location"]
         )
-        #destination="bigquery",
-        #dataset_name=BQ_PARAMS[SERVER]['dataset_name'],  # will be created if not exists
     )
-
 
     pipeline_info = pipeline.run(
         flattened_jobs_posting(source),
-        #credentials=get_gcp_key(),
     )
 
     logger.info(str(pipeline_info))
-
-
-def main():
-    rapidapi_jobs_posting(get_end_page())
-
-if __name__=="__main__":
-    main()

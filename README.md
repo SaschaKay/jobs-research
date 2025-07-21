@@ -41,7 +41,7 @@ Data loaded in Pandas DataFrames, processed, and downloaded to a distinct analyt
 2. Set up infrastructure with [job-research-infrastracture](https://github.com/SaschaKay/job-research-infrastracture).
 3. Clone this repository to your Airflow container in `/opt/airflow/repos`.
 4. Create a link on DAGs files as described in `pipelines/dags/readme.txt`.
-5. Create filr `/pipelines/rapidapi_jobs_posting/key.py` and add there
+5. Create file `/pipelines/rapidapi_jobs_posting/key.py` and add there
    
        API_KEY = "_your repidapi keey_"
 7. Specify variable END_PAGE in `/pipelines/rapidapi_jobs_posting/config.py`. If not specified, all available data for DATE_CREATED period will be requested.

@@ -32,57 +32,6 @@ def format_dict_str(dict_to_print: dict, header: str = "") -> str:
     return message
 
 
-def get_gcp_key():
-    GOOGLE_APPLICATION_CREDENTIALS = os.environ[
-        "GOOGLE_APPLICATION_CREDENTIALS"
-    ]  # path to a GCP credential file
-    with open(GOOGLE_APPLICATION_CREDENTIALS) as f:
-        gcp_key_dict = json.load(f)
-    return gcp_key_dict   
-
-
-def google_sheet_to_df(sheet_url: str) -> str:
-    return pd.read_csv(sheet_url.replace("/edit?gid=", "/export?format=csv&gid="))
-    
-
-def bq_table_to_df(project, dataset_name, table_ref, bq_client = None):
-    if bq_client is None:
-        bq_client = bigquery.Client()
-    dataset_ref = bigquery.DatasetReference(project, dataset_name)
-    table_ref = dataset_ref.table(table_ref)
-    table = bq_client.get_table(table_ref)
-    return bq_client.list_rows(table).to_dataframe()
-
-
-def df_to_bq(df, table_name, dataset, project, bq_client=None, truncate=False):
-    if bq_client is None:
-        bq_client = bigquery.Client()
-        
-    full_table_name = f"{project}.{dataset}.{table_name}"
-
-    if truncate:
-        job = bq_client.query(f"truncate table {full_table_name}")
-        job.result()
-        logger.info(f"{full_table_name} truncated")
-        
-    job_config = bigquery.LoadJobConfig(
-        write_disposition=(
-            bigquery.WriteDisposition.WRITE_TRUNCATE
-            if truncate
-            else bigquery.WriteDisposition.WRITE_APPEND
-        )
-    )
-    job = bq_client.load_table_from_dataframe(
-        df, full_table_name, job_config
-    ) 
-    job.result()
-    logger.info(
-        "Loaded {} rows to {}".format(
-            len(df), full_table_name
-        )
-    )
-
-
 def bytes_to_gcs(content: bytes, gcs_bucket: str, path: str): 
     client = storage.Client()
     bucket = client.bucket(gcs_bucket)
@@ -113,6 +62,11 @@ def flatten_dict_by_key(nested_dict: dict, keys: Iterable):
         result.update(nested_dict[key])
         del result[key]
     return result
+
+
+def google_sheet_to_df(sheet_url: str) -> str:
+    return pd.read_csv(sheet_url.replace("/edit?gid=", "/export?format=csv&gid="))
+
 
 PaginatedSourceResponseFormat = Literal["json", "parquet"]
 @dlt.source
@@ -242,6 +196,55 @@ def paginated_source(
             time.sleep(delay)
 
     return get_pages
+
+
+#---------------------------------------------BigQuery utils--------------------------------------------
+
+def get_gcp_key():
+    GOOGLE_APPLICATION_CREDENTIALS = os.environ[
+        "GOOGLE_APPLICATION_CREDENTIALS"
+    ]  # path to a GCP credential file
+    with open(GOOGLE_APPLICATION_CREDENTIALS) as f:
+        gcp_key_dict = json.load(f)
+    return gcp_key_dict   
+
+
+def bq_table_to_df(project, dataset_name, table_ref, bq_client = None):
+    if bq_client is None:
+        bq_client = bigquery.Client()
+    dataset_ref = bigquery.DatasetReference(project, dataset_name)
+    table_ref = dataset_ref.table(table_ref)
+    table = bq_client.get_table(table_ref)
+    return bq_client.list_rows(table).to_dataframe()
+
+
+def df_to_bq(df, table_name, dataset, project, bq_client=None, truncate=False):
+    if bq_client is None:
+        bq_client = bigquery.Client()
+        
+    full_table_name = f"{project}.{dataset}.{table_name}"
+
+    if truncate:
+        job = bq_client.query(f"truncate table {full_table_name}")
+        job.result()
+        logger.info(f"{full_table_name} truncated")
+        
+    job_config = bigquery.LoadJobConfig(
+        write_disposition=(
+            bigquery.WriteDisposition.WRITE_TRUNCATE
+            if truncate
+            else bigquery.WriteDisposition.WRITE_APPEND
+        )
+    )
+    job = bq_client.load_table_from_dataframe(
+        df, full_table_name, job_config
+    ) 
+    job.result()
+    logger.info(
+        "Loaded {} rows to {}".format(
+            len(df), full_table_name
+        )
+    )
 
 
 def check_duplicates_bq(

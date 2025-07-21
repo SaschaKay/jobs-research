@@ -1,12 +1,14 @@
 # English Speaking Data Specialists in Germany. Job Market Analytics.
-
 A cloud-based data pipeline to monitor and analyze job postings in Germany. 
-Dashboard 
 
 Project uses external [API](https://rapidapi.com/techmap-io-techmap-io-default/api/daily-international-job-postings), which scrapes postings data from numerous portals.
 For analysis, postings with 'Data' in the title were used. 
 
 ![image](https://github.com/user-attachments/assets/492003fe-ccb7-40af-ad3c-81ef673796aa)
+
+## Links
+* [Project's dashboard](https://lookerstudio.google.com/u/2/reporting/e029baeb-1698-40d5-8670-e279f4afe7c5/page/tEnnC/edit) _(in process...)_
+* Infrastructure repository [job-research-infrastracture](https://github.com/SaschaKay/job-research-infrastracture).
 
 ## IaC
 Set up with Terraform:
@@ -36,14 +38,22 @@ Data loaded in Pandas DataFrames, processed, and downloaded to a distinct analyt
 
 ![image](https://github.com/user-attachments/assets/59c57c42-4d0b-442f-a9df-27539204f520)
 
+## To Do
+1. Add analytics by key tech positions.
+2. Transfer views into DBT.
+3. Create a database schema visualisation and checks in DBT.
+4. Add an article with data cleaning details.
+5. Break the data transform DAG into several sub-DAGs, with downloading intermediate results into BigQuery.
+6. Add monitoring and autotests. 
+
 ## Reproducibility
-1. Key and instructions for API can be obtained [here](https://rapidapi.com/techmap-io-techmap-io-default/api/daily-international-job-postings)(there are 25 free requests available).
+1. Key and instructions for the API can be obtained [here](https://rapidapi.com/techmap-io-techmap-io-default/api/daily-international-job-postings) (25 free requests are available).
 2. Set up infrastructure with [job-research-infrastracture](https://github.com/SaschaKay/job-research-infrastracture).
 3. Clone this repository to your Airflow container in `/opt/airflow/repos`.
 4. Create a link on DAGs files as described in `pipelines/dags/readme.txt`.
-5. Create file `/pipelines/rapidapi_jobs_posting/key.py` and add there
+5. Create a file `/pipelines/rapidapi_jobs_posting/key.py` and add there
    
-       API_KEY = "_your repidapi keey_"
+       API_KEY = "_your repidapi key_"
 7. Specify variable END_PAGE in `/pipelines/rapidapi_jobs_posting/config.py`. If not specified, all available data for DATE_CREATED period will be requested.
 8. Change Google Cloud infrastructure parameters in GCS_PARAMS, BQ_PARAMS, and GCP_NAME variables.
 9. Open Airflow Webserver UI. You should see jobs_postings_pipeline in the list of DUGs there. 

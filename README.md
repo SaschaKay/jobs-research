@@ -70,5 +70,5 @@ Data loaded in Pandas DataFrames, processed, and downloaded to a distinct analyt
 5. Create a database schema visualisation and checks in DBT.
 6. Add an article with data cleaning details.
 7. Break the data transform DAG into several sub-DAGs, with downloading intermediate results into BigQuery.
-8. Add monitoring and autotests.
-9. Unit tests?
+8. Add monitoring
++ unit tests

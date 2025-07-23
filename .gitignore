@@ -9,3 +9,5 @@
 
 #Ignore testing notebooks in pipelines folder
 **/pipelines/**.ipynb
+
+/**.egg-info

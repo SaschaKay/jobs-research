@@ -1,16 +1,3 @@
-import sys
-import os
-
-CURRENT_DIRECTORY = os.path.abspath(__file__)
-sys.path.append(CURRENT_DIRECTORY)
-
-from config import PROJECT_ROOT_RELATIVE
-sys.path.append(
-    os.path.abspath(
-        os.path.join(CURRENT_DIRECTORY, PROJECT_ROOT_RELATIVE)
-    )
-)
-
 import datetime as dt
 from io import BytesIO
 import hashlib
@@ -23,11 +10,11 @@ from typing import Iterable
 import dlt
 from dlt.sources.helpers import requests
 
-from common.utils import (
-    df_to_bq,
-    flatten_dict_by_key,
-)
+from common.utils import flatten_dict_by_key
+from common.bq_helper import BQHelper
 
+import logging
+logger = logging.getLogger(__name__)
 
 #load pipeline functions
 
@@ -88,21 +75,21 @@ class LoadsLogger():
     Logs dlt_load_id of processed batch in BQ. Used to filter processed batches.
     """
     
-    def __init__(self, df_posting, dataset, project):
-        self.dataset = dataset
-        self.project = project
+    def __init__(self, df_posting, pipeline_name, dataset, project):
+        self.bqh = BQHelper(project=project, default_dataset=dataset)
+
         self.df_new_loads = pd.DataFrame(df_posting["_dlt_load_id"].drop_duplicates()).copy(deep = True)
         self.df_new_loads.rename(columns={"_dlt_load_id":"dlt_load_id"}, inplace=True)
+        self.pipeline_name = pipeline_name
+        self.df_new_loads["processed_by"] = pipeline_name
 
     def get_df(self):
         return self.df_new_loads
 
-    def start(self, pipeline_name):
-        self.df_new_loads["processed_by"] = pipeline_name
+    def start(self):
         self.df_new_loads["started_at"] = dt.datetime.now()
-        df_to_bq(self.df_new_loads, '_jp_processed_loads', self.dataset, self.project, truncate=False)
+        self.bqh.df_to_table(self.df_new_loads, '_jp_processed_loads', truncate=False)
 
-    def finish(self, pipeline_name):
-        self.df_new_loads["processed_by"] = pipeline_name
+    def finish(self):
         self.df_new_loads["finished_at"] = dt.datetime.now()
-        df_to_bq(self.df_new_loads, '_jp_processed_loads', self.dataset, self.project, truncate=False)
+        self.bqh.df_to_table(self.df_new_loads, '_jp_processed_loads', truncate=False)

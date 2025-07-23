@@ -1,34 +1,9 @@
-import sys
-import os
-
-import logging
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-PROJECT_ROOT_RELATIVE = "../../"
-CUR_DIR_WARNING = (
-    "__file__ was not available, os.getcwd() was used instead. "
-    "You may need to change the working directory."
-)
-try:
-    CURRENT_DIRECTORY = os.path.dirname(__file__)
-except NameError:
-    CURRENT_DIRECTORY = os.getcwd()
-    logging.debug(CUR_DIR_WARNING)
-
-if CURRENT_DIRECTORY not in sys.path:
-    sys.path.append(CURRENT_DIRECTORY)
-
-PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIRECTORY, PROJECT_ROOT_RELATIVE))
-
-if PROJECT_ROOT not in sys.path:
-    sys.path.append(PROJECT_ROOT)
-    logging.debug(f"{PROJECT_ROOT} was appended to sys.path")
-
 from typing import Any, Literal
 from common.utils import check_literal_values
 from key import API_KEY
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 # Defines params for a DAG

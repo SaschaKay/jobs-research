@@ -1,34 +1,3 @@
-import sys
-import os
-import logging
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-# adding paths for project modules
-CUR_DIR_WARNING = (
-    "__file__ was not available, os.getcwd() was used instead. "
-    "You may need to change the working directory."
-)
-try:
-    CURRENT_DIRECTORY = os.path.dirname(__file__)
-except NameError:
-    CURRENT_DIRECTORY = os.getcwd()
-    logging.debug(CUR_DIR_WARNING)
-
-if CURRENT_DIRECTORY not in sys.path:
-    sys.path.append(CURRENT_DIRECTORY)
-    
-from config import PROJECT_ROOT_RELATIVE
-PROJECT_ROOT = os.path.abspath(
-    os.path.join(CURRENT_DIRECTORY, PROJECT_ROOT_RELATIVE)
-)
-
-if PROJECT_ROOT not in sys.path:
-    sys.path.append(PROJECT_ROOT)
-    logging.debug(f"{PROJECT_ROOT} was appended to sys.path")
-
-from datetime import timedelta
 from copy import deepcopy
 import dlt
 
@@ -38,6 +7,10 @@ from common.utils import (
 )
 
 from functions import flattened_jobs_posting, count_pages
+
+import logging
+from common.logging_config import setup_logging
+logger = logging.getLogger(__name__)
 
 
 def calculate_creation_date(execution_date, delta_days):
@@ -88,7 +61,6 @@ def main(**kwargs):
     logger.info(f'Pages from {start_page} to {end_page} will be requested')
     logger.info("Getting postings data...")
 
-    #Creating source for dlt pipeline
     source = paginated_source(
         url=url.format(request_type="search"),
         response_format="json",
@@ -116,4 +88,6 @@ def main(**kwargs):
         flattened_jobs_posting(source),
     )
 
-    logger.info(str(pipeline_info))
+if __name__=="__main__":
+    setup_logging()
+    main()

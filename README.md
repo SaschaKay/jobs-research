@@ -1,4 +1,14 @@
-# English Speaking Data Specialists in Germany. Job Market Analytics.
+# English Speaking Data Specialists in Germany. 
+
+# Goals
+It is a personal pet-project, used to:
+- collect relevant vacancies
+- try new tools
+- basic market research
+
+The author so far has no plans to scale up this project, and sometimes sacrifices scalability for the sake of development speed. If you are planning to reuse part of the project or came from a LinkedIn link, ask me about bottlenecks :)
+
+# Description
 A cloud-based data pipeline to monitor and analyze job postings in Germany. 
 
 Project uses external [API](https://rapidapi.com/techmap-io-techmap-io-default/api/daily-international-job-postings), which scrapes postings data from numerous portals.
@@ -17,7 +27,7 @@ Set up with Terraform:
 With Docker:
 * Python container for processing and orchestrating
 * Airflow containers: scheduler(+worker), webserver, postgress.
-* In addition, stand-alone basic Airflow container is used to check all libraries versions installed on the jupyter container for compatibility with Airflow for further seamless migration.
+* In addition, a stand-alone basic Airflow container is used to check all library versions installed on the Jupyter container for compatibility with Airflow for further seamless migration.
 Code and instructions for setting up infrastructure are in [job-research-infrastracture](https://github.com/SaschaKay/job-research-infrastracture) repository.
 
 ## Data Flow
@@ -38,15 +48,7 @@ Data loaded in Pandas DataFrames, processed, and downloaded to a distinct analyt
 
 ![image](https://github.com/user-attachments/assets/59c57c42-4d0b-442f-a9df-27539204f520)
 
-## To Do
-1. Add analytics by key tech positions.
-2. Transfer views into DBT.
-3. Create a database schema visualisation and checks in DBT.
-4. Add an article with data cleaning details.
-5. Break the data transform DAG into several sub-DAGs, with downloading intermediate results into BigQuery.
-6. Add monitoring and autotests. 
-
-## Reproducibility
+# Reproducibility
 1. Key and instructions for the API can be obtained [here](https://rapidapi.com/techmap-io-techmap-io-default/api/daily-international-job-postings) (25 free requests are available).
 2. Set up infrastructure with [job-research-infrastracture](https://github.com/SaschaKay/job-research-infrastracture).
 3. Clone this repository to your Airflow container in `/opt/airflow/repos`, then install it as a package:
@@ -62,3 +64,14 @@ Data loaded in Pandas DataFrames, processed, and downloaded to a distinct analyt
 9. Open Airflow Webserver UI. You should see jobs_postings_pipeline in the list of DUGs there. 
     ![image](https://github.com/user-attachments/assets/3688df19-af90-407c-b50b-68d2b153125d)
 10. Trigger it with ![image](https://github.com/user-attachments/assets/d5b3a283-6fbc-4aa2-9ca1-c4bd52c3e47c)
+
+# To Do
+1. Rewrite BigQuery helpers as a class.
+2. Split transformation task in DAG into smaller parts.
+3. Add analytics by key positions in Looker. 
+4. Transfer views into DBT.
+5. Create a database schema visualisation and checks in DBT.
+6. Add an article with data cleaning details.
+7. Break the data transform DAG into several sub-DAGs, with downloading intermediate results into BigQuery.
+8. Add monitoring
++ unit tests

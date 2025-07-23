@@ -1,19 +1,17 @@
 from copy import deepcopy
 from sentinels import Sentinel 
 from typing import Iterable, Literal
-import logging
 
 import re
 import pandas as pd 
 
 from common.utils import check_literal_values 
 
+import logging
+logger = logging.getLogger(__name__)
+
 MISSING = Sentinel('MISSING')
 REPLACE_WITH_SPACES = r"[!\"$\%'()\+,\-./:;?]"
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
 
 def prepare_text(
     text: str,
@@ -201,10 +199,12 @@ class MappingRules:
 
         if find == "all":
             result = set()
-            if default_response is MISSING: default_response = set()
+            if default_response is MISSING: 
+                default_response = set()
         if find == "any":
             result = None
-            if default_response is MISSING: default_response = None 
+            if default_response is MISSING: 
+                default_response = None 
         something_found = False
         
         for mapping_dict in self.map_dicts_prepared:

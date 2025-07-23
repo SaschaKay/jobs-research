@@ -1,14 +1,3 @@
-import sys
-import os
-
-CURRENT_DIRECTORY = os.path.dirname(__file__)
-if CURRENT_DIRECTORY == "/opt/airflow/dags":
-    PIPELINES_ROOT = "/opt/airflow/repos/jobs-research/pipelines"
-else:
-    PIPELINES_ROOT = os.path.join(CURRENT_DIRECTORY, '..')
-if PIPELINES_ROOT not in sys.path:
-    sys.path.append(PIPELINES_ROOT)
-
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime

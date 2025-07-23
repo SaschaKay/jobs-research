@@ -1,40 +1,9 @@
-import sys
-import os
-import logging
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-# adding paths for project modules
-CUR_DIR_WARNING = (
-    "__file__ was not available, os.getcwd() was used instead. "
-    "You may need to change the working directory."
-)
-try:
-    CURRENT_DIRECTORY = os.path.dirname(__file__)
-except NameError:
-    CURRENT_DIRECTORY = os.getcwd()
-    logging.debug(CUR_DIR_WARNING)
-
-if CURRENT_DIRECTORY not in sys.path:
-    sys.path.append(CURRENT_DIRECTORY)
-    
-from config import PROJECT_ROOT_RELATIVE
-PROJECT_ROOT = os.path.abspath(
-    os.path.join(CURRENT_DIRECTORY, PROJECT_ROOT_RELATIVE)
-)
-
-if PROJECT_ROOT not in sys.path:
-    sys.path.append(PROJECT_ROOT)
-    logging.debug(f"{PROJECT_ROOT} was appended to sys.path")
-
 from copy import deepcopy
 import dlt
 
 from common.utils import (
     paginated_source,
     get_gcp_key,
-    format_dict_str,
 )
 from config import ( 
     #request parameters
@@ -50,6 +19,10 @@ from config import (
     SERVER
 )
 from functions import flattened_jobs_posting, count_pages
+
+import logging
+from common.logging_config import setup_logging
+logger = logging.getLogger(__name__)
 
 BQ_PARAMS = BQ_DWH_PARAMS
 
@@ -78,7 +51,7 @@ def rapidapi_jobs_posting(end_page: int = 1) -> None:
     The function uses the dlt library to create a pipeline that extracts job postings from the RapidAPI service.
     """
     logger.info("Getting postings data...")
-    logger.debug( f"Server: {SERVER}")
+    logger.info( f"Server: {SERVER}")
     
     source = paginated_source(
         url=URL.format(request_type="search"),
@@ -117,4 +90,5 @@ def main():
     rapidapi_jobs_posting(get_end_page())
 
 if __name__=="__main__":
+    setup_logging()
     main()

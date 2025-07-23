@@ -1,43 +1,12 @@
 import sys
-import os
-import logging
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-# adding paths for project modules
-CUR_DIR_WARNING = (
-    "__file__ was not available, os.getcwd() was used instead. "
-    "You may need to change the working directory."
-)
-try:
-    CURRENT_DIRECTORY = os.path.dirname(__file__)
-except NameError:
-    CURRENT_DIRECTORY = os.getcwd()
-    logger.debug(CUR_DIR_WARNING)
-
-if CURRENT_DIRECTORY not in sys.path:
-    sys.path.append(CURRENT_DIRECTORY)
-    
-from config import PROJECT_ROOT_RELATIVE
-PROJECT_ROOT = os.path.abspath(
-    os.path.join(CURRENT_DIRECTORY, PROJECT_ROOT_RELATIVE)
-)
-
-if PROJECT_ROOT not in sys.path:
-    sys.path.append(PROJECT_ROOT)
-    logger.debug(f"{PROJECT_ROOT} was added to sys.path")
 
 from math import ceil
 import pandas as pd
 import datetime as dt
 from google.cloud import bigquery
 
-from common.utils import (
-    SqlMergeQuery,
-    df_to_bq,
-    google_sheet_to_df
-)
+from common.utils import google_sheet_to_df
+from common.bq_helper import BQHelper
 from functions import (
     get_post_id,
     LoadsLogger,
@@ -55,6 +24,11 @@ from config import (
     SERVER, #switching between test/prod parameters
     MAPPING_RULES_EXPORT_URLS,
 )
+
+import logging
+from common.logging_config import setup_logging
+logger = logging.getLogger(__name__)
+
 
 location = BQ_DWH_PARAMS[SERVER]['location']
 bq_client = bigquery.Client(location=location)
@@ -108,17 +82,17 @@ def main():
     inner join new_loads nl on jp._dlt_load_id = nl.load_id
     where locale = "en_DE"
     """
-    logger.debug(f"Fetching new data... \n{df_posting_load_query}")
+    logger.info(f"Fetching new data... \n{df_posting_load_query}")
     df_posting = bq_client.query(df_posting_load_query).to_dataframe()
     logger.info(f"Fetched {len(df_posting)} raws from `{source_tables_prefix}.jobs_posting`")
     
     if df_posting.empty:
         logger.warning("⚠️  No data to process")
         sys.exit(0)
-    
-    new_loads = LoadsLogger(df_posting, dataset, project)
-    new_loads.start(pipeline_name)
+    new_loads = LoadsLogger(df_posting, pipeline_name, dataset, project)
+    new_loads.start()
     df_posting.drop(columns="_dlt_load_id", inplace=True)
+    df_posting['date_created'] = df_posting['date_created'].dt.date
     
     
     #----------------------------------------------------deal with doubled posts----------------------------------------
@@ -249,29 +223,32 @@ def main():
     #----------------------------------------------------update analytical tables-----------------------------------------
     
     #download data to the tmp table
+    bq = BQHelper(project=project,default_dataset=dataset)
     df_posting.rename(columns = {"job_id": "id"}, inplace=True)
     df_posting = df_posting[JOBS_POSTINGS_FINAL_COLS]
-    df_to_bq(df_posting, '_jp_jobs_batch', dataset, project, truncate=True)
-    df_to_bq(df_skills, "_jp_jobs_skills_batch", dataset, project, truncate=True)
-    df_to_bq(df_positions, "_jp_jobs_positions_batch", dataset, project, truncate=True)
-    df_to_bq(df_city_clusters, "_jp_jobs_city_clusters_batch", dataset, project, truncate=True)
+    bq.df_to_table(df_posting, '_jp_jobs_batch', truncate=True, strict_schema=True)
+    bq.df_to_table(df_skills, "_jp_jobs_skills_batch", truncate=True)
+    bq.df_to_table(df_positions, "_jp_jobs_positions_batch", truncate=True)
+    bq.df_to_table(df_city_clusters, "_jp_jobs_city_clusters_batch", truncate=True)
     
     #save info about new ids 
     df_dlt_to_post_id.rename(columns = {"_dlt_id": "dlt_id"}, inplace=True)
     df_dlt_to_post_id['matched_at'] = dt.datetime.now()
-    df_to_bq(df_dlt_to_post_id, '_jp_dlt_ids_matching', dataset, project, truncate=False)
+    bq.df_to_table(df_dlt_to_post_id, '_jp_dlt_ids_matching', truncate=False)
     
     #update main analytical table
-    SqlMergeQuery(
-        f"{project}.{analytical_dataset}.jobs",
-        f"{project}.{dataset}._jp_jobs_batch",  
-        "id",
-        JOBS_POSTINGS_FINAL_COLS,
-        JOBS_POSTINGS_FINAL_COLS,
-    ).execute_bq()
+    bq.merge(
+        destination_table=f"{analytical_dataset}.jobs",
+        source_table=f"{dataset}._jp_jobs_batch",  
+        key_columns=["id"],
+        insert_columns=JOBS_POSTINGS_FINAL_COLS,
+        update_columns=JOBS_POSTINGS_FINAL_COLS,
+        raise_duplicates_error=True
+    )
     
     # log
-    new_loads.finish(pipeline_name)
+    new_loads.finish()
 
 if __name__=="__main__":
+    setup_logging()
     main()

@@ -1,7 +1,8 @@
 from key import API_KEY
 from datetime import datetime, timedelta
 
-PROJECT_ROOT_RELATIVE = "../../"
+import logging
+logger = logging.getLogger(__name__)
 
 # query parameters for the API
 

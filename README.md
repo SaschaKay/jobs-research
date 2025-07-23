@@ -49,7 +49,10 @@ Data loaded in Pandas DataFrames, processed, and downloaded to a distinct analyt
 ## Reproducibility
 1. Key and instructions for the API can be obtained [here](https://rapidapi.com/techmap-io-techmap-io-default/api/daily-international-job-postings) (25 free requests are available).
 2. Set up infrastructure with [job-research-infrastracture](https://github.com/SaschaKay/job-research-infrastracture).
-3. Clone this repository to your Airflow container in `/opt/airflow/repos`.
+3. Clone this repository to your Airflow container in `/opt/airflow/repos`, then install it as a package:
+   
+        cd /opt/airflow/repos/jobs-research
+        pip install -e .
 4. Create a link on DAGs files as described in `pipelines/dags/readme.txt`.
 5. Create a file `/pipelines/rapidapi_jobs_posting/key.py` and add there
    

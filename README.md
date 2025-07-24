@@ -33,7 +33,7 @@ Code and instructions for setting up infrastructure are in [job-research-infrast
 ## Data Flow
 Ingestion and transformation pipelines are realised in two different modules that launch automatically one after another, but can be relaunched independently, if needed.
 #### Ingestion:
-Loaded with DBT pipeline from custom paginated source to BQ. 
+Loaded with DLT pipeline from custom paginated source to BQ. 
 Source:
   1. Requests data with the DLT helper
   2. Immediately saves the response to Google Cloud Storage

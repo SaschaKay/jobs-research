@@ -6,12 +6,13 @@ It is a personal pet-project, used to:
 - try new tools
 - basic market research
 
-The author so far has no plans to scale up this project, and sometimes sacrifices scalability for the sake of development speed. If you are planning to reuse part of the project or came from a LinkedIn link, ask me about bottlenecks :)
+The author currently has no plans to scale up this project, sometimes sacrificing scalability for the sake of development speed. Take a look at the scaling notes and recommendations [here](https://github.com/SaschaKay/jobs-research/blob/master/SCALING.md)
+
 
 # Description
 A cloud-based data pipeline to monitor and analyze job postings in Germany. 
 
-Project uses external [API](https://rapidapi.com/techmap-io-techmap-io-default/api/daily-international-job-postings), which scrapes postings data from numerous portals.
+The project utilizes an external [API](https://rapidapi.com/techmap-io-techmap-io-default/api/daily-international-job-postings), which scrapes data from numerous job posting portals.
 For analysis, postings with 'Data' in the title were used. 
 
 ![image](https://github.com/user-attachments/assets/492003fe-ccb7-40af-ad3c-81ef673796aa)
@@ -37,8 +38,8 @@ Loaded with DLT pipeline from custom paginated source to BQ.
 Source:
   1. Requests data with the DLT helper
   2. Immediately saves the response to Google Cloud Storage
-  3. Partly flattens the response JSON, deletes duplicated fields, and hands it to DLT
-DTL defines a schema based on data, handles datatypes, flattens JSON list fields into distinct tables, and loads them incrementally. 
+  3. Partly flattens the response JSON, deletes duplicated fields, and hands it to dlt
+dlt defines a schema based on data, handles datatypes, flattens JSON list fields into distinct tables, and loads them incrementally. 
 #### Transformation:
 Data loaded in Pandas DataFrames, processed, and downloaded to a distinct analytical dataset.
   1. Identical positions, posted on different portals, grouped based on location, preprocessed description, and title. Unique key for analytical table = id of position, generated with SHA1 based on preprocessed text fields.
@@ -67,7 +68,7 @@ Data loaded in Pandas DataFrames, processed, and downloaded to a distinct analyt
 
 # To Do
 1. Rewrite BigQuery helpers as a class.
-2. Split transformation task in DAG into smaller parts.
+2. Split the transformation task in the DAG into smaller parts.
 3. Add analytics by key positions in Looker. 
 4. Transfer views into DBT.
 5. Create a database schema visualisation and checks in DBT.

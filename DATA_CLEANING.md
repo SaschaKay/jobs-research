@@ -5,39 +5,39 @@ This document summarises how raw job postings are transformed into the analytica
 ## 1. Final table schema
 The cleaned data is stored in BigQuery table `jp.jobs`. The columns and their types are:
 
-| Column | Type | Description |
-|-------|------|-------------|
-| `id` | STRING | Unique hash of title, company, city and description |
-| `date_created` | DATE | Day when the post was first seen |
-| `company` | STRING | Hiring company name |
-| `portal` | STRING | Source portal |
-| `url` | STRING | Link to the original posting |
-| `years_of_experience` | INT64 | Rounded years of experience required |
-| `description` | STRING | Original job description |
-| `city_clusters` | ARRAY<STRING> | Normalised location labels |
-| `positions` | ARRAY<STRING> | Normalised job titles |
-| `skills` | ARRAY<STRING> | Extracted skills |
+| Column | Type | Description | Source field(s) from API responce |
+|-------|------|-------------|------------------------------------------|
+| `id` | STRING | Unique job ID (same for the same postings on different platforms or with different post times) | Hash based on `title`, `company`, `description` |
+| `date_created` | DATE | Day when the last post with this job was created | `date_created` |
+| `company` | STRING | Hiring company name | `company` |
+| `portal` | STRING | Source portal of the last post created | `portal` |
+| `url` | STRING | Link to the last posting | `url` |
+| `years_of_experience` | INT64 | Rounded years of experience required | `experience_requirements__months_of_experience` |
+| `description` | STRING | Original job description | `description` |
+| `city_clusters` | ARRAY<STRING> | Normalised location labels | Normalized `city` |
+| `positions` | ARRAY<STRING> | Normalised job titles | Normalized `title` and `occupation` |
+| `skills` | ARRAY<STRING> | Normalized skills, extracted from job's description | Extracted from `description` |
 
 ## 2. Raw field usage
 
-| Raw field | Used in final dataset? | Reason |
+| Raw field | Used in final dataset? | Comment |
 |-----------|-----------------------|-------|
-| `title` | ✓ via `positions` | Raw titles like "Engineer" were too broad; mapped to standard positions |
-| `occupation` | ✓ via `positions` | Combined with title for position mapping |
-| `company` | ✓ | Kept as company identifier |
-| `city` | ✓ via `city_clusters` | Chosen as single reliable location field |
-| `url` | ✓ | Reference link |
-| `portal` | ✓ | Originating portal |
-| `description` | ✓ | Source for skills and job context |
-| `experience_requirements__months_of_experience` | ✓ as `years_of_experience` | Converted and rounded up |
-| `hiring_organization__name` | ✗ | Duplicates `company` |
-| `hiring_organization__url` | ✗ | Often missing; duplicates company info |
-| `source` | ✗ | Same as `portal` |
-| `employment_type` | ✗ | Inconsistent values |
-| `base_salary__value__min_value`/`max_value` | ✗ | Missing units and rarely filled |
-| `job_location__identifier` | ✗ | Too sparse and inconsistent |
-| `applicant_location_requirements` | ✗ | Mostly missing |
-| `timezone_offset` | ✗ | Nearly constant |
+| `title` | ✔️ | Raw titles; mapped to standard positions |
+| `occupation` | ✔️ | Often too broad and not domain-specific (for example, 'Engineer' instead of 'Data Engineer' and 'Software Engineer'); combined with title for position mapping |
+| `company` | ✔️ | Kept without changes |
+| `city` | ✔️ | Chosen as single reliable location field to define `city_clusters` |
+| `url` | ✔️ | Reference link |
+| `portal` | ✔️ | Originating portal |
+| `description` | ✔️ | Source for skills |
+| `experience_requirements__months_of_experience` | ✔️ | Converted to years and rounded |
+| `hiring_organization__name` | ❌ | Duplicates `company` |
+| `hiring_organization__url` | ❌ | Often missing; duplicates company info |
+| `source` | ❌ | Same as `portal` |
+| `employment_type` | ❌ | Inconsistent values, often missing |
+| `base_salary__value__min_value`/`max_value` | ❌ | Missing units and rarely filled |
+| `job_location__identifier` | ❌ | Too sparse and inconsistent |
+| `applicant_location_requirements` | ❌ | Mostly missing |
+| `timezone_offset` | ❌ | Nearly constant (all requested jobs located in Germany) |
 
 ## 3. Cleaning steps
 1. **Fetch new data** – query BigQuery for unprocessed loads with locale `en_DE`.

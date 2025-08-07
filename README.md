@@ -20,6 +20,7 @@ For analysis, postings with 'Data' in the title were used.
 ## Links
 * [Project's dashboard](https://lookerstudio.google.com/u/2/reporting/e029baeb-1698-40d5-8670-e279f4afe7c5/page/tEnnC/edit) _(in process...)_
 * Infrastructure repository [job-research-infrastracture](https://github.com/SaschaKay/job-research-infrastracture).
+* [Data cleaning details](./DATA_CLEANING.md)
 
 ## IaC
 Set up with Terraform:
@@ -72,7 +73,7 @@ Data loaded in Pandas DataFrames, processed, and downloaded to a distinct analyt
 3. Add analytics by key positions in Looker. 
 4. Transfer views into DBT.
 5. Create a database schema visualisation and checks in DBT.
-6. Add an article with data cleaning details.
+6. Document the data cleaning process (see [DATA_CLEANING.md](./DATA_CLEANING.md)).
 7. Break the data transform DAG into several sub-DAGs, with downloading intermediate results into BigQuery.
 8. Add monitoring
 + unit tests

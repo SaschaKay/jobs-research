@@ -1,6 +1,6 @@
 # Data Cleaning Process
 
-This document summarises how raw job postings are transformed into the analytical table. The full implementation lives in [pipeline_transform.py](./pipelines/rapidapi_jobs_posting/pipeline_transform.py).
+This document summarises how raw job postings are transformed into the analytical table. The full implementation lives in [pipeline_transform.py](./pipeline_transform.py).
 
 ## 1. Final table schema
 The cleaned data is stored in the BigQuery table `jp.jobs`. The columns and their types are:
